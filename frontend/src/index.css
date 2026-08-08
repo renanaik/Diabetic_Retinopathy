@@ -1,0 +1,146 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-clinical-bg text-clinical-text;
+  }
+
+  * {
+    @apply border-clinical-border;
+  }
+}
+
+@layer components {
+  /* Clinical card */
+  .card {
+    @apply bg-white border border-clinical-border rounded-lg shadow-clinical;
+  }
+
+  /* Clinical input */
+  .input {
+    @apply w-full px-3 py-2 bg-white border border-clinical-border rounded-md text-sm
+           text-clinical-text placeholder-clinical-muted
+           focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500
+           transition-colors duration-150;
+  }
+
+  /* Clinical select */
+  .select {
+    @apply w-full px-3 py-2 bg-white border border-clinical-border rounded-md text-sm
+           text-clinical-text
+           focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500
+           transition-colors duration-150 cursor-pointer;
+  }
+
+  /* Label */
+  .label {
+    @apply block text-sm font-medium text-navy-700 mb-1.5;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-clinical-bg;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-clinical-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-navy-300;
+  }
+}
+
+/* Retinal fundus placeholder */
+.retinal-placeholder {
+  background: radial-gradient(ellipse at center,
+    #1a0a00 0%,
+    #2d1200 15%,
+    #3d1f00 30%,
+    #1a0a00 60%,
+    #000000 100%
+  );
+  position: relative;
+  overflow: hidden;
+}
+
+.retinal-placeholder::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 45% 50%,
+    rgba(255, 160, 60, 0.25) 0%,
+    transparent 40%
+  );
+}
+
+.retinal-placeholder::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 52% 48%,
+    rgba(255, 120, 30, 0.15) 0%,
+    transparent 20%
+  );
+}
+
+/* Heatmap overlay */
+.heatmap-overlay {
+  background: radial-gradient(ellipse at 45% 52%,
+    rgba(255, 0, 0, 0.45) 0%,
+    rgba(255, 100, 0, 0.35) 15%,
+    rgba(255, 200, 0, 0.25) 28%,
+    rgba(0, 200, 100, 0.1) 40%,
+    transparent 60%
+  ),
+  radial-gradient(ellipse at 62% 44%,
+    rgba(255, 50, 0, 0.3) 0%,
+    rgba(255, 150, 0, 0.2) 12%,
+    transparent 28%
+  ),
+  radial-gradient(ellipse at 35% 60%,
+    rgba(255, 80, 0, 0.25) 0%,
+    rgba(255, 180, 0, 0.15) 10%,
+    transparent 25%
+  );
+  mix-blend-mode: screen;
+}
+
+/* Progress bar animation */
+@keyframes progress-fill {
+  from { width: 0%; }
+}
+
+.progress-bar {
+  animation: progress-fill 0.8s ease-out forwards;
+}
+
+/* Fade in */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in {
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+/* Pulse dot */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
