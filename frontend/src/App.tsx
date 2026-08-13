@@ -1,107 +1,191 @@
-import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
-import { Sidebar } from './components/layout/Sidebar';
-import { MobileNav } from './components/layout/MobileNav';
-import { Navbar } from './components/layout/Navbar';
+import { ThemeProvider }     from './context/ThemeContext';
+import { AuthProvider }      from './context/AuthContext';
+import { ToastProvider }     from './context/ToastContext';
+import { ProtectedRoute }    from './components/auth/ProtectedRoute';
+import { ToastContainer }    from './components/ui/Toast';
 
-import { HomePage } from './pages/HomePage';
-import { DashboardPage } from './pages/DashboardPage';
-import { ScreeningPage } from './pages/ScreeningPage';
-import { ResultsPage } from './pages/ResultsPage';
-import { ProgressTrackerPage } from './pages/ProgressTrackerPage';
-import { PatientHistoryPage } from './pages/PatientHistoryPage';
-import { AboutPage } from './pages/AboutPage';
+// ── Public layouts & pages
+import { PublicLayout }      from './components/layout/PublicLayout';
+import { HomePage }          from './pages/HomePage';
+import { AboutPage }         from './pages/AboutPage';
+import { HowItWorksPage }    from './pages/HowItWorksPage';
+import { DRStagesPage }      from './pages/DRStagesPage';
+import { LoginPage }         from './pages/LoginPage';
+import { SignupPage }        from './pages/SignupPage';
+import { NotFoundPage }      from './pages/NotFoundPage';
+import { AccessDeniedPage }  from './pages/AccessDeniedPage';
 
-// Pages that use the app shell (sidebar + top bar)
-const APP_ROUTES = [
-  '/dashboard',
-  '/screening',
-  '/results',
-  '/progress',
-  '/history',
-  '/about',
-];
+// ── Authenticated layouts
+import { PatientLayout }     from './components/layout/PatientLayout';
+import { DoctorLayout }      from './components/layout/DoctorLayout';
+import { AdminLayout }       from './components/layout/AdminLayout';
 
-function useIsAppRoute(): boolean {
-  const { pathname } = useLocation();
-  return APP_ROUTES.some((r) => pathname.startsWith(r));
-}
+// ── Patient pages
+import { PatientDashboard }      from './pages/patient/PatientDashboard';
+import { PatientReports }        from './pages/patient/PatientReports';
+import { PatientProgress }       from './pages/patient/PatientProgress';
+import { PatientProfile }        from './pages/patient/PatientProfile';
+import { PatientSettings }       from './pages/patient/PatientSettings';
+import { PatientFindDoctors }    from './pages/patient/PatientFindDoctors';
+import { PatientDoctorProfile }  from './pages/patient/PatientDoctorProfile';
+import { PatientMyDoctor }       from './pages/patient/PatientMyDoctor';
+import { PatientReportDetail }   from './pages/patient/PatientReportDetail';
 
-// App shell wraps pages that need sidebar navigation
-const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+// ── Doctor pages
+import { DoctorDashboard }            from './pages/doctor/DoctorDashboard';
+import { DoctorPatients }             from './pages/doctor/DoctorPatients';
+import { DoctorNewScreening }         from './pages/doctor/DoctorNewScreening';
+import { DoctorResults }              from './pages/doctor/DoctorResults';
+import { DoctorProgress }             from './pages/doctor/DoctorProgress';
+import { DoctorPatientHistory }       from './pages/doctor/DoctorPatientHistory';
+import { DoctorModel }                from './pages/doctor/DoctorModel';
+import { DoctorSettings }             from './pages/doctor/DoctorSettings';
+import { DoctorVerificationPending }  from './pages/doctor/DoctorVerificationPending';
+import { DoctorVerificationRejected } from './pages/doctor/DoctorVerificationRejected';
+import { DoctorRequests }             from './pages/doctor/DoctorRequests';
+import { DoctorPatientDetail }        from './pages/doctor/DoctorPatientDetail';
+import { DoctorProfile }              from './pages/doctor/DoctorProfile';
 
-  return (
-    <div className="flex h-screen overflow-hidden bg-clinical-bg">
-      {/* Sidebar */}
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((c) => !c)}
-      />
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar on mobile */}
-        <div className="lg:hidden bg-white border-b border-clinical-border flex items-center justify-between px-4 h-14 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-navy-700 flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 text-white" stroke="currentColor" strokeWidth={2}>
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 4a8 8 0 1 0 0 16A8 8 0 0 0 12 4z" opacity={0.3} />
-              </svg>
-            </div>
-            <span className="text-sm font-bold text-navy-800">RetinaCare AI</span>
-          </div>
-        </div>
-
-        {/* Scrollable page content */}
-        <main className="flex-1 overflow-y-auto pb-16 lg:pb-0">
-          {children}
-        </main>
-      </div>
-
-      {/* Mobile bottom nav */}
-      <MobileNav />
-    </div>
-  );
-};
-
-const AppRoutes: React.FC = () => {
-  const isApp = useIsAppRoute();
-
-  if (!isApp) {
-    // Public routes (landing page with Navbar)
-    return (
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    );
-  }
-
-  return (
-    <AppShell>
-      <Routes>
-        <Route path="/dashboard"  element={<DashboardPage />} />
-        <Route path="/screening"  element={<ScreeningPage />} />
-        <Route path="/results"    element={<ResultsPage />} />
-        <Route path="/results/:screeningId" element={<ResultsPage />} />
-        <Route path="/progress"   element={<ProgressTrackerPage />} />
-        <Route path="/history"    element={<PatientHistoryPage />} />
-        <Route path="/about"      element={<AboutPage />} />
-        {/* Fallback within app */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </AppShell>
-  );
-};
+// ── Admin pages
+import { AdminDashboard }    from './pages/admin/AdminDashboard';
+import { AdminUsers }        from './pages/admin/AdminUsers';
+import { AdminDoctors }      from './pages/admin/AdminDoctors';
+import { AdminPatients }     from './pages/admin/AdminPatients';
+import { AdminConnections }  from './pages/admin/AdminConnections';
+import { AdminScreenings }   from './pages/admin/AdminScreenings';
+import { AdminReports }      from './pages/admin/AdminReports';
+import { AdminSettings }     from './pages/admin/AdminSettings';
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <ThemeProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <ToastContainer />
+            <Routes>
+
+              {/* ══════════════════════════════════════
+                  PUBLIC ROUTES
+              ══════════════════════════════════════ */}
+              <Route path="/"             element={<PublicLayout><HomePage /></PublicLayout>} />
+              <Route path="/about"        element={<PublicLayout><AboutPage /></PublicLayout>} />
+              <Route path="/how-it-works" element={<PublicLayout><HowItWorksPage /></PublicLayout>} />
+              <Route path="/dr-stages"    element={<PublicLayout><DRStagesPage /></PublicLayout>} />
+              <Route path="/login"        element={<PublicLayout><LoginPage /></PublicLayout>} />
+              <Route path="/signup"       element={<PublicLayout><SignupPage /></PublicLayout>} />
+              <Route path="/access-denied" element={<AccessDeniedPage />} />
+
+              {/* ══════════════════════════════════════
+                  PATIENT ROUTES  [role: patient]
+              ══════════════════════════════════════ */}
+              <Route
+                path="/patient"
+                element={
+                  <ProtectedRoute allowedRoles={['patient']}>
+                    <PatientLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index             element={<PatientDashboard />} />
+                <Route path="dashboard"  element={<PatientDashboard />} />
+                <Route path="reports"    element={<PatientReports />} />
+                <Route path="reports/:reportId" element={<PatientReportDetail />} />
+                <Route path="progress"   element={<PatientProgress />} />
+                <Route path="profile"    element={<PatientProfile />} />
+                <Route path="settings"   element={<PatientSettings />} />
+                {/* Phase 3: Doctor discovery & connection */}
+                <Route path="doctors"          element={<PatientFindDoctors />} />
+                <Route path="doctors/:doctorId" element={<PatientDoctorProfile />} />
+                <Route path="my-doctor"        element={<PatientMyDoctor />} />
+              </Route>
+
+              {/* ══════════════════════════════════════
+                  DOCTOR ROUTES  [role: doctor]
+              ══════════════════════════════════════ */}
+
+              {/* Verification pending — any doctor status can reach this */}
+              <Route
+                path="/doctor/verification-pending"
+                element={
+                  <ProtectedRoute allowedRoles={['doctor']} requireVerified={false}>
+                    <DoctorVerificationPending />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Verification rejected */}
+              <Route
+                path="/doctor/verification-rejected"
+                element={
+                  <ProtectedRoute allowedRoles={['doctor']} requireVerified={false}>
+                    <DoctorVerificationRejected />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* All other doctor routes — verified doctors only */}
+              <Route
+                path="/doctor"
+                element={
+                  <ProtectedRoute allowedRoles={['doctor']}>
+                    <DoctorLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index                       element={<DoctorDashboard />} />
+                <Route path="dashboard"            element={<DoctorDashboard />} />
+                <Route path="patients"             element={<DoctorPatients />} />
+                {/* Phase 3: Patient detail with resource-level auth */}
+                <Route path="patients/:patientId"  element={<DoctorPatientDetail />} />
+                {/* Phase 3: Connection requests */}
+                <Route path="requests"             element={<DoctorRequests />} />
+                {/* Phase 3: Doctor's own profile */}
+                <Route path="profile"              element={<DoctorProfile />} />
+                <Route path="new-screening"        element={<DoctorNewScreening />} />
+                <Route path="results"              element={<DoctorResults />} />
+                <Route path="progress"             element={<DoctorProgress />} />
+                <Route path="patient-history"      element={<DoctorPatientHistory />} />
+                <Route path="model"                element={<DoctorModel />} />
+                <Route path="settings"             element={<DoctorSettings />} />
+              </Route>
+
+              {/* ══════════════════════════════════════
+                  ADMIN ROUTES  [role: super_admin]
+              ══════════════════════════════════════ */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={['super_admin']}>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index               element={<AdminDashboard />} />
+                <Route path="dashboard"    element={<AdminDashboard />} />
+                <Route path="users"        element={<AdminUsers />} />
+                <Route path="doctors"      element={<AdminDoctors />} />
+                <Route path="patients"     element={<AdminPatients />} />
+                {/* Phase 3: Connection management */}
+                <Route path="connections"  element={<AdminConnections />} />
+                <Route path="screenings"   element={<AdminScreenings />} />
+                <Route path="reports"      element={<AdminReports />} />
+                <Route path="settings"     element={<AdminSettings />} />
+              </Route>
+
+              {/* ══════════════════════════════════════
+                  404 CATCH-ALL
+              ══════════════════════════════════════ */}
+              <Route path="*" element={<PublicLayout><NotFoundPage /></PublicLayout>} />
+
+            </Routes>
+          </BrowserRouter>
+        </ToastProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

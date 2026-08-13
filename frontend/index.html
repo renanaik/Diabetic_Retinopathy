@@ -6,14 +6,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- SEO -->
-    <title>RetinaCare AI — Diabetic Retinopathy Screening Platform</title>
-    <meta name="description" content="AI-assisted diabetic retinopathy screening platform. Analyze retinal fundus images, estimate DR severity, and track disease progression. Academic research prototype." />
+    <title>RetinaCare AI — AI-Assisted Diabetic Retinopathy Screening</title>
+    <meta name="description" content="RetinaCare AI is an academic AI-assisted diabetic retinopathy screening and monitoring platform. AI-powered retinal image analysis, doctor review, and patient monitoring — all in one place." />
+    <meta name="keywords" content="diabetic retinopathy, AI screening, retinal imaging, ophthalmology, healthcare AI" />
     <meta name="robots" content="noindex, nofollow" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="RetinaCare AI — AI-Assisted Diabetic Retinopathy Screening" />
+    <meta property="og:description" content="Academic AI-assisted retinal screening platform. AI analysis, doctor review, and patient monitoring." />
+    <meta property="og:type" content="website" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Theme init script — prevents flash of wrong theme -->
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('retinacare-theme');
+          if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

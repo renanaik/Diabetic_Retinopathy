@@ -10,6 +10,7 @@ export interface DRStage {
   color: string;
   bgColor: string;
   borderColor: string;
+  dotClass: string;
 }
 
 export const DR_STAGES: DRStage[] = [
@@ -17,99 +18,98 @@ export const DR_STAGES: DRStage[] = [
     index: 0,
     name: 'No Diabetic Retinopathy',
     shortName: 'No DR',
-    description: 'No signs of diabetic retinopathy detected.',
-    color: 'text-green-700',
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-200',
+    description: 'No visible signs of diabetic retinopathy detected in the retinal image.',
+    color: 'text-green-700 dark:text-green-400',
+    bgColor: 'bg-green-50 dark:bg-green-950/30',
+    borderColor: 'border-green-200 dark:border-green-800',
+    dotClass: 'dr-none',
   },
   {
     index: 1,
     name: 'Mild Diabetic Retinopathy',
-    shortName: 'Mild DR',
-    description: 'Mild nonproliferative diabetic retinopathy.',
-    color: 'text-yellow-700',
-    bgColor: 'bg-yellow-50',
-    borderColor: 'border-yellow-200',
+    shortName: 'Mild',
+    description: 'Mild nonproliferative changes. Small areas of swelling (microaneurysms) may be present.',
+    color: 'text-yellow-700 dark:text-yellow-400',
+    bgColor: 'bg-yellow-50 dark:bg-yellow-950/30',
+    borderColor: 'border-yellow-200 dark:border-yellow-800',
+    dotClass: 'dr-mild',
   },
   {
     index: 2,
     name: 'Moderate Diabetic Retinopathy',
-    shortName: 'Moderate DR',
-    description: 'Moderate nonproliferative diabetic retinopathy.',
-    color: 'text-amber-700',
-    bgColor: 'bg-amber-50',
-    borderColor: 'border-amber-200',
+    shortName: 'Moderate',
+    description: 'Moderate nonproliferative changes. Blood vessels in the retina may swell and distort.',
+    color: 'text-amber-700 dark:text-amber-400',
+    bgColor: 'bg-amber-50 dark:bg-amber-950/30',
+    borderColor: 'border-amber-200 dark:border-amber-800',
+    dotClass: 'dr-moderate',
   },
   {
     index: 3,
     name: 'Severe Diabetic Retinopathy',
-    shortName: 'Severe DR',
-    description: 'Severe nonproliferative diabetic retinopathy.',
-    color: 'text-orange-700',
-    bgColor: 'bg-orange-50',
-    borderColor: 'border-orange-200',
+    shortName: 'Severe',
+    description: 'Severe nonproliferative changes. More blood vessels are blocked, depriving retinal areas of blood supply.',
+    color: 'text-orange-700 dark:text-orange-400',
+    bgColor: 'bg-orange-50 dark:bg-orange-950/30',
+    borderColor: 'border-orange-200 dark:border-orange-800',
+    dotClass: 'dr-severe',
   },
   {
     index: 4,
     name: 'Proliferative Diabetic Retinopathy',
-    shortName: 'Proliferative DR',
-    description: 'Proliferative diabetic retinopathy — most advanced stage.',
-    color: 'text-red-700',
-    bgColor: 'bg-red-50',
-    borderColor: 'border-red-200',
+    shortName: 'Proliferative',
+    description: 'Most advanced stage. New, fragile blood vessels grow on the retinal surface — the most serious form.',
+    color: 'text-red-700 dark:text-red-400',
+    bgColor: 'bg-red-50 dark:bg-red-950/30',
+    borderColor: 'border-red-200 dark:border-red-800',
+    dotClass: 'dr-proliferative',
   },
 ];
 
-// ─── Prediction / Result Types ────────────────────────────────────────────────
+// ─── Theme Types ──────────────────────────────────────────────────────────────
 
-export interface ProbabilityDistribution {
-  noDR: number;
-  mild: number;
-  moderate: number;
-  severe: number;
-  proliferative: number;
+export type Theme = 'light' | 'dark';
+
+export interface ThemeContextValue {
+  theme: Theme;
+  toggleTheme: () => void;
+  isDark: boolean;
 }
 
-export interface PotentialFinding {
-  type: string;
-  description: string;
-  confidence: 'low' | 'moderate' | 'high';
-}
+// ─── Auth Types — re-exported from auth.ts ────────────────────────────────────
 
-export interface ScreeningResult {
-  screeningId: string;
-  patientId: string;
-  examinationDate: string;
-  eye: 'Left' | 'Right';
-  predictedStage: DRStageIndex;
-  stageName: string;
-  confidence: number;           // 0–1
-  probabilities: ProbabilityDistribution;
-  heatmapAvailable: boolean;
-  potentialFindings: PotentialFinding[];
-  notes?: string;
-  reviewStatus: 'Pending Review' | 'Reviewed' | 'Flagged';
-  imageUrl?: string;
-}
+export type {
+  UserRole,
+  DoctorVerificationStatus,
+  ConnectionStatus,
+  ConnectionRequestedBy,
+  AuthUser,
+  AuthSession,
+  PatientSignupData,
+  DoctorSignupData,
+  SignupData,
+  AuthContextValue,
+  DoctorPatientConnection,
+  MockScreening,
+} from './auth';
 
-// ─── Patient Types ────────────────────────────────────────────────────────────
+// ─── Screening Types — re-exported from screening.ts ─────────────────────────
 
-export interface Patient {
-  patientId: string;
-  name: string;
-  age: number;
-  diabetesDuration: number; // years
-  lastScreening?: string;   // ISO date
-}
+export type {
+  ScreeningStatus,
+  DoctorReview,
+  ScreeningResult,
+  Report,
+  Screening,
+} from './screening';
 
-// ─── Screening Form ───────────────────────────────────────────────────────────
-
-export interface ScreeningFormData {
-  patientId: string;
-  examinationDate: string;
-  eye: 'Left' | 'Right';
-  notes?: string;
-}
+export const DR_CLASS_MAPPING: Record<0 | 1 | 2 | 3 | 4, string> = {
+  0: 'No Diabetic Retinopathy',
+  1: 'Mild Diabetic Retinopathy',
+  2: 'Moderate Diabetic Retinopathy',
+  3: 'Severe Diabetic Retinopathy',
+  4: 'Proliferative Diabetic Retinopathy',
+};
 
 // ─── API Response Wrappers ────────────────────────────────────────────────────
 
@@ -120,30 +120,7 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-export interface PredictRequest {
-  imageFile: File;
-  patientId: string;
-  examinationDate: string;
-  eye: 'Left' | 'Right';
-  notes?: string;
-}
+// ─── UI Types ─────────────────────────────────────────────────────────────────
 
-export interface PredictResponse {
-  predictedStage: DRStageIndex;
-  stageName: string;
-  confidence: number;
-  probabilities: ProbabilityDistribution;
-  heatmapUrl?: string;
-  screeningId: string;
-}
-
-// ─── Progress ─────────────────────────────────────────────────────────────────
-
-export interface ProgressDataPoint {
-  date: string;
-  predictedStage: DRStageIndex;
-  stageName: string;
-  confidence: number;
-  screeningId: string;
-  eye: 'Left' | 'Right';
-}
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+export type ButtonSize    = 'sm' | 'md' | 'lg' | 'xl';
