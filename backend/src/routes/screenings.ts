@@ -2,9 +2,10 @@
  * screenings.ts — Retinal Screening Routes
  *
  * All endpoints require authentication and verified doctor status:
- *   POST /api/screenings       — Create and analyze a new retinal screening for a connected patient
- *   GET  /api/screenings       — List screenings for authenticated doctor (supports ?patientId=)
- *   GET  /api/screenings/:id   — Retrieve single screening details (ownership verified)
+ *   POST  /api/screenings            — Create and analyze a new retinal screening for a connected patient
+ *   GET   /api/screenings            — List screenings for authenticated doctor (supports ?patientId=)
+ *   GET   /api/screenings/:id        — Retrieve single screening details (ownership verified)
+ *   PATCH /api/screenings/:id/review — Doctor approves or rejects a pending_review screening (Phase 5F)
  *
  * Security:
  *   - Only verified doctors can create or view screenings.
@@ -18,6 +19,7 @@ import {
   createScreening,
   getDoctorScreenings,
   getScreeningById,
+  reviewScreening,
 } from '../controllers/screening.controller';
 import { authenticate } from '../middleware/authenticate';
 import { requireVerifiedDoctor } from '../middleware/requireVerifiedDoctor';
@@ -82,5 +84,6 @@ router.use(authenticate, requireVerifiedDoctor);
 router.post('/', uploadImageMiddleware, createScreening);
 router.get('/', getDoctorScreenings);
 router.get('/:id', getScreeningById);
+router.patch('/:id/review', reviewScreening);
 
 export default router;

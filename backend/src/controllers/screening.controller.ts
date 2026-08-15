@@ -2,14 +2,16 @@
  * screening.controller.ts — Retinal Screening Controller
  *
  * Handles clinical screening creation, ML inference integration, and persistence:
- *   - POST /api/screenings       — Verified doctor creates a screening for an accepted patient
- *   - GET  /api/screenings       — Verified doctor lists their screenings (supports ?patientId=)
- *   - GET  /api/screenings/:id   — Verified doctor retrieves a single screening by ID (ownership enforced)
+ *   - POST  /api/screenings            — Verified doctor creates a screening for an accepted patient
+ *   - GET   /api/screenings            — Verified doctor lists their screenings (supports ?patientId=)
+ *   - GET   /api/screenings/:id        — Verified doctor retrieves a single screening by ID (ownership enforced)
+ *   - PATCH /api/screenings/:id/review — Verified doctor approves or rejects a pending_review screening
  *
  * Security:
- *   - Strict verified doctor authorization required (requireVerifiedDoctor).
+ *   - Strict verified doctor authorization required (requireVerifiedDoctor) on all endpoints.
  *   - Screenings can ONLY be created for patients with an ACCEPTED connection.
- *   - Doctor ownership is strictly enforced on all queries.
+ *   - Doctor ownership is strictly enforced on all queries and review actions.
+ *   - AI result (aiResult) is NEVER modified by the review operation.
  *   - Patients and Super Admins cannot access screening records in this phase.
  */
 
@@ -338,6 +340,140 @@ export async function getScreeningById(
           doctor: {
             id: req.user!.id,
             name: req.user!.name,
+          },
+          createdAt: screening.createdAt,
+          updatedAt: screening.updatedAt,
+        },
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ─── PATCH /api/screenings/:id/review (Doctor Review) ───────────────────────
+
+/**
+ * Allows the verified doctor who CREATED a screening to submit a clinical
+ * review decision.
+ *
+ * Rules:
+ *   1. Screening must exist and belong to the requesting doctor (ownership).
+ *   2. Screening must currently be in 'pending_review' state.
+ *      Attempting to re-review an already-reviewed screening returns 409.
+ *   3. 'decision' ('approved' | 'rejected') is required.
+ *   4. 'doctorNotes' is optional (string, max 4000 chars).
+ *   5. aiResult is NEVER modified — the AI prediction is immutable.
+ *
+ * On success the status transitions: pending_review → approved | rejected
+ */
+export async function reviewScreening(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const doctorId = req.user!.id;
+    const { id } = req.params;
+
+    // 1. Validate screening ID format
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid screening ID.',
+      });
+      return;
+    }
+
+    // 2. Parse body
+    const { decision, doctorNotes } = req.body as {
+      decision?: string;
+      doctorNotes?: string;
+    };
+
+    // 3. Validate decision value
+    if (!decision || !['approved', 'rejected'].includes(decision)) {
+      res.status(400).json({
+        success: false,
+        message: 'Field "decision" is required and must be "approved" or "rejected".',
+      });
+      return;
+    }
+
+    // 4. Validate optional doctorNotes length
+    if (doctorNotes !== undefined && typeof doctorNotes === 'string' && doctorNotes.length > 4000) {
+      res.status(400).json({
+        success: false,
+        message: '"doctorNotes" must be at most 4000 characters.',
+      });
+      return;
+    }
+
+    // 5. Load screening
+    const screening = await Screening.findById(id);
+
+    if (!screening) {
+      res.status(404).json({
+        success: false,
+        message: 'Screening not found.',
+      });
+      return;
+    }
+
+    // 6. Enforce ownership — only the doctor who created it may review it
+    if (screening.doctorId.toString() !== doctorId) {
+      res.status(403).json({
+        success: false,
+        message: 'You are not authorised to review this screening.',
+      });
+      return;
+    }
+
+    // 7. Enforce state transition — only pending_review may be reviewed
+    if (screening.status !== 'pending_review') {
+      res.status(409).json({
+        success: false,
+        message: `Screening has already been reviewed (status: "${screening.status}"). Re-reviewing is not permitted.`,
+        data: {
+          screening: {
+            id: screening._id.toString(),
+            status: screening.status,
+            review: screening.review,
+          },
+        },
+      });
+      return;
+    }
+
+    // 8. Atomically update — aiResult is NOT touched
+    const now = new Date();
+    screening.status = decision as 'approved' | 'rejected';
+    screening.review = {
+      decision: decision as 'approved' | 'rejected',
+      doctorNotes: doctorNotes?.trim() || '',
+      reviewedAt: now,
+      reviewedBy: new mongoose.Types.ObjectId(doctorId),
+    };
+    await screening.save();
+
+    logger.info(`Screening ${id} reviewed: decision=${decision} by doctor=${doctorId}`);
+
+    // 9. Respond with the updated screening (review + original aiResult)
+    res.status(200).json({
+      success: true,
+      message: `Screening ${decision} successfully.`,
+      data: {
+        screening: {
+          id: screening._id.toString(),
+          patientId: screening.patientId.toString(),
+          doctorId: screening.doctorId.toString(),
+          status: screening.status,
+          aiResult: screening.aiResult,        // immutable — returned for reference
+          review: {
+            decision: screening.review!.decision,
+            doctorNotes: screening.review!.doctorNotes,
+            reviewedAt: screening.review!.reviewedAt,
+            reviewedBy: screening.review!.reviewedBy.toString(),
           },
           createdAt: screening.createdAt,
           updatedAt: screening.updatedAt,

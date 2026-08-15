@@ -12,6 +12,7 @@
     "test:5c": "ts-node src/scripts/testPhase5C.ts",
     "test:5d": "ts-node src/scripts/testPhase5D.ts",
     "test:5e": "ts-node src/scripts/testPhase5E.ts",
+    "test:5f": "ts-node src/scripts/testPhase5F.ts",
     "ml:start": "ml_service/venv/bin/python ml_service/app.py"
   },
   "dependencies": {
@@ -27,9 +28,12 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/form-data": "^2.2.1",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.2.0",
     "@types/node": "^22.5.0",
+    "axios": "^1.19.0",
+    "form-data": "^4.0.6",
     "nodemon": "^3.1.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"
