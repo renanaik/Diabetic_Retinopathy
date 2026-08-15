@@ -1,34 +1,56 @@
 # RetinaCare AI — Backend
 
-Node.js/Express REST API for the RetinaCare AI diabetic retinopathy screening platform.
+Node.js/Express REST API with Python FastAPI Machine Learning Inference for the RetinaCare AI diabetic retinopathy screening platform.
+
+## Architecture
+
+```
+React Frontend (Vite + TypeScript)
+       ↓  HTTP / REST
+Node.js / Express API (Port 5001)
+   ├── MongoDB (Mongoose ODM)
+   └── Python FastAPI ML Inference Engine (Port 5002)
+            ↓
+       PyTorch EfficientNet-B4 (balanced_efficientnet_b4_dr.pth)
+```
 
 ## Technologies
 
 | Technology | Purpose |
 |---|---|
-| Node.js | Runtime |
+| Node.js | Backend runtime |
 | Express | HTTP framework |
 | MongoDB | Database |
 | Mongoose | ODM / schema layer |
-| dotenv | Environment variable loading |
-| CORS | Cross-origin resource sharing |
+| Python 3 | Machine Learning runtime |
+| PyTorch | Deep Learning framework |
+| torchvision | EfficientNet-B4 model & transforms |
+| Pillow | Image decoding & RGB processing |
+| FastAPI / Uvicorn | High-performance Python ML microservice |
+| multer | In-memory multipart file handling |
 | bcryptjs | Password hashing |
 | jsonwebtoken | JWT authentication |
 | TypeScript | Type safety |
-| ts-node | Run TypeScript in development |
-| nodemon | Auto-restart on file changes |
 
 ## Project Structure
 
 ```
 backend/
+├── ml_service/
+│   ├── models/                    ← Model checkpoints (git-ignored)
+│   │   └── balanced_efficientnet_b4_dr.pth
+│   ├── app.py                     ← FastAPI microservice (Port 5002)
+│   ├── config.py                  ← ML service configuration
+│   ├── inference.py               ← PyTorch EfficientNet-B4 loader & inference
+│   └── requirements.txt           ← Python ML dependencies
 ├── src/
 │   ├── config/
 │   │   └── db.ts                  ← MongoDB connection
 │   ├── controllers/
 │   │   ├── admin.controller.ts    ← Doctor verification endpoints
 │   │   ├── auth.controller.ts     ← Signup, login, me
-│   │   └── connection.controller.ts ← Doctor-Patient connection workflows
+│   │   ├── connection.controller.ts ← Doctor-Patient connection workflows
+│   │   └── ml.controller.ts       ← ML inference gateway controller
 │   ├── middleware/
 │   │   ├── authenticate.ts        ← JWT verification
 │   │   ├── authorizeRoles.ts      ← Role-based access control
@@ -45,10 +67,12 @@ backend/
 │   │   ├── admin.ts               ← /api/admin/*
 │   │   ├── auth.ts                ← /api/auth/*
 │   │   ├── connections.ts         ← /api/connections/*
+│   │   ├── ml.ts                  ← /api/ml/* (AI Screening Prediction)
 │   │   └── health.ts              ← GET /api/health
 │   ├── scripts/
 │   │   ├── seedSuperAdmin.ts      ← Super Admin seed script
-│   │   └── testPhase5C.ts         ← Automated test suite for Phase 5C
+│   │   ├── testPhase5C.ts         ← Automated test suite for Phase 5C
+│   │   └── testPhase5D.ts         ← Automated test suite for Phase 5D
 │   ├── utils/
 │   │   ├── jwt.ts                 ← JWT sign/verify
 │   │   ├── logger.ts              ← Console logger
@@ -61,63 +85,52 @@ backend/
 └── README.md
 ```
 
-## Setup
+---
 
-### 1. Navigate to the backend directory
+## Setup & Quick Start
+
+### 1. Node.js Backend Setup
 
 ```bash
 cd backend
-```
-
-### 2. Install dependencies
-
-```bash
 npm install
-```
-
-### 3. Create your environment file
-
-```bash
 cp .env.example .env
 ```
 
-### 4. Fill in environment variables
+Open `backend/.env` and configure variables. Ensure `MONGO_URI` includes `retinacare` as database name.
 
-Open `backend/.env` and configure all variables (see table below).
-
-The `MONGO_URI` must include `retinacare` as the database name:
-
-```
-MONGO_URI=mongodb+srv://<user>:<pass>@<cluster>.mongodb.net/retinacare?retryWrites=true&w=majority
-```
-
-Generate a strong `JWT_SECRET`:
+### 2. Python ML Inference Service Setup
 
 ```bash
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+# Create Python virtual environment and install dependencies
+python3 -m venv ml_service/venv
+source ml_service/venv/bin/activate
+pip install -r ml_service/requirements.txt
 ```
 
-### 5. Seed the Super Admin
+Place the trained model file at:
+```
+backend/ml_service/models/balanced_efficientnet_b4_dr.pth
+```
 
-> **The Super Admin can ONLY be created via this seed script — not through public signup.**
+### 3. Seed the Super Admin
 
 ```bash
 npm run seed:admin
 ```
 
-This is safe to run multiple times — it will not create duplicates.
+### 4. Running the Services
 
-### 6. Start the backend
-
-**Development (auto-restart on changes):**
+**Terminal 1 — Python ML Service (Port 5002):**
 ```bash
-npm run dev
+cd backend
+npm run ml:start
 ```
 
-**Production:**
+**Terminal 2 — Node.js Express API (Port 5001):**
 ```bash
-npm run build
-npm start
+cd backend
+npm run dev
 ```
 
 ---
@@ -126,68 +139,121 @@ npm start
 
 | Variable | Default | Required | Description |
 |---|---|---|---|
-| `PORT` | `5001` | No | Server port |
-| `MONGO_URI` | — | **Yes** | MongoDB connection string (include `/retinacare` as DB name) |
+| `PORT` | `5001` | No | Express server port |
+| `MONGO_URI` | — | **Yes** | MongoDB connection string (database: `retinacare`) |
 | `FRONTEND_URL` | `http://localhost:5173` | No | Allowed CORS origin |
 | `NODE_ENV` | `development` | No | Environment mode |
-| `JWT_SECRET` | — | **Yes** | Long random string for signing JWTs |
-| `JWT_EXPIRES_IN` | `7d` | No | Token expiry (e.g. `7d`, `24h`) |
-| `SUPER_ADMIN_NAME` | — | For seed | Display name of the Super Admin |
-| `SUPER_ADMIN_EMAIL` | — | For seed | Login email of the Super Admin |
-| `SUPER_ADMIN_PASSWORD` | — | For seed | Super Admin password (will be hashed) |
+| `JWT_SECRET` | — | **Yes** | Secret string for signing JWTs |
+| `JWT_EXPIRES_IN` | `7d` | No | Token expiration |
+| `SUPER_ADMIN_NAME` | — | For seed | Super Admin display name |
+| `SUPER_ADMIN_EMAIL` | — | For seed | Super Admin login email |
+| `SUPER_ADMIN_PASSWORD` | — | For seed | Super Admin password |
+| `ML_SERVICE_URL` | `http://127.0.0.1:5002` | No | Internal URL of Python ML service |
 
 ---
 
-## User Roles
+## ML Inference Engine (Phase 5D)
 
-| Role | Description |
-|---|---|
-| `patient` | Diabetic patients. Created via public signup. |
-| `doctor` | Ophthalmologists. Created via public signup. Start as `pending`. |
-| `super_admin` | Platform administrator. Created **only** via `npm run seed:admin`. |
+### Model Architecture
+- **Base Architecture**: `torchvision.models.efficientnet_b4`
+- **Classifier Head**:
+  ```python
+  num_features = model.classifier[1].in_features # 1792
+  model.classifier = nn.Sequential(
+      nn.Dropout(p=0.4, inplace=True),
+      nn.Linear(num_features, 5)
+  )
+  ```
+- **Weights**: Loaded once on server startup from `balanced_efficientnet_b4_dr.pth` (`state_dict`).
+- **Device Support**: Auto-detects `CUDA` (NVIDIA GPUs), `MPS` (Apple Silicon), or `CPU`.
 
-## Doctor Verification Workflow
+### Input Preprocessing Pipeline
+1. Decodes raw image bytes and converts to standard `RGB`.
+2. Resizes image to `(380, 380)` dimensions.
+3. Converts to PyTorch Tensor.
+4. Normalizes with standard ImageNet statistics:
+   - `mean = [0.485, 0.456, 0.406]`
+   - `std = [0.229, 0.224, 0.225]`
+5. Adds batch dimension `(1, 3, 380, 380)` and evaluates via `torch.no_grad()`.
+6. Calculates softmax class probability distribution.
 
-| Status | Meaning |
-|---|---|
-| `pending` | New doctor awaiting admin review |
-| `verified` | Doctor approved by admin. Clinical permissions granted. |
-| `rejected` | Doctor rejected by admin. Clinical permissions withheld. |
-| `not_applicable` | Used for patients and super_admin |
+### Diabetic Retinopathy 5-Class Mapping
 
-### Verification Security Rules
-1. **Frontend restrictions are NOT the security boundary**: The backend middleware (`requireVerifiedDoctor`) enforces that only verified doctors can access clinical operations.
-2. Unverified or rejected doctors can authenticate to receive their profile status, but cannot access patient data or accept connection requests.
-3. Only `super_admin` accounts can approve or reject doctor credentials.
+| Class Index | Label | Triage Category | Description |
+|---|---|---|---|
+| `0` | **No DR** | Non-Referable | No visible signs of diabetic retinopathy |
+| `1` | **Mild DR** | Non-Referable | Microaneurysms only |
+| `2` | **Moderate DR** | Referable | More than microaneurysms but less than severe |
+| `3` | **Severe DR** | Referable | >20 intraretinal hemorrhages, venous beading, IRMA |
+| `4` | **Proliferative DR** | Referable | Neovascularization, vitreous/preretinal hemorrhage |
 
----
-
-## Doctor ↔ Patient Connections
-
-Patients can discover verified doctors and request a clinical connection. Relationships maintain state:
-- `pending`: Patient requested a connection; waiting for doctor's approval.
-- `accepted`: Doctor accepted the request; active clinical relationship established.
-- `rejected`: Doctor rejected the request.
-
-### Ownership & Access Control Rules
-- **Strict Tenant & Identity Isolation**: Doctors can ONLY see and manage requests directed to them (`doctorId = req.user.id`).
-- **Patient Isolation**: Patients can ONLY view their own connections (`patientId = req.user.id`).
-- **No Self-Connections**: Patients cannot request connections with themselves.
-- **Verified Doctors Only**: Connection requests can only be sent to doctors whose `verificationStatus === 'verified'`.
-- **Client IDs Untrusted**: All mutation actions derive doctor/patient identities directly from authenticated `req.user` tokens.
+### Referable / Non-Referable Triage
+- `referable`: `true` if `predictedClass` is in `{2, 3, 4}`.
+- `referableProbability`: $\sum_{c \in \{2, 3, 4\}} P(c)$ (sum of probabilities for classes 2, 3, and 4).
+- **Clinical Disclaimer**: AI predictions are assistive screening aids and strictly require review by a licensed ophthalmologist.
 
 ---
 
 ## API Endpoints
 
-### Health & Auth Endpoints
+### Machine Learning Inference (`/api/ml/*`)
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `POST` | `/api/ml/predict` | Verified Doctor | Upload retinal image (form field: `image` or `file`) for AI screening prediction |
+
+#### `POST /api/ml/predict` Example Request
+```bash
+curl -X POST http://localhost:5001/api/ml/predict \
+  -H "Authorization: Bearer <VERIFIED_DOCTOR_JWT>" \
+  -F "image=@/path/to/retina.jpg"
+```
+
+#### Example Success Response (200 OK)
+```json
+{
+  "success": true,
+  "message": "Retinal image analysis completed successfully.",
+  "data": {
+    "prediction": {
+      "predictedClass": 2,
+      "predictedLabel": "Moderate DR",
+      "confidence": 0.7425,
+      "classProbabilities": {
+        "0": 0.0412,
+        "1": 0.1250,
+        "2": 0.7425,
+        "3": 0.0610,
+        "4": 0.0303
+      },
+      "referable": true,
+      "referableProbability": 0.8338,
+      "imageMetadata": {
+        "originalFormat": "JPEG",
+        "originalWidth": 2048,
+        "originalHeight": 1536
+      },
+      "disclaimer": "AI prediction is a screening aid and requires doctor review."
+    },
+    "doctor": {
+      "id": "6a806c95d8a0f6c13d753bbb",
+      "name": "Dr. Evelyn Reed"
+    },
+    "timestamp": "2026-08-15T13:41:40.123Z"
+  }
+}
+```
+
+---
+
+### Core & Auth Endpoints
 
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
 | `GET` | `/api/health` | Public | Server & MongoDB connection status |
-| `POST` | `/api/auth/signup` | Public | Register patient or doctor (Super Admin blocked) |
+| `POST` | `/api/auth/signup` | Public | Register patient or doctor |
 | `POST` | `/api/auth/login` | Public | Authenticate with email & password, returns JWT |
-| `GET` | `/api/auth/me` | Authenticated | Get current authenticated user profile |
+| `GET` | `/api/auth/me` | Authenticated | Get current user profile |
 
 ---
 
@@ -195,10 +261,10 @@ Patients can discover verified doctors and request a clinical connection. Relati
 
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| `GET` | `/api/admin/doctors/pending` | Super Admin | View all doctors awaiting verification |
-| `GET` | `/api/admin/doctors` | Super Admin | View all doctors (supports `?status=` query filter) |
-| `PATCH` | `/api/admin/doctors/:doctorId/approve` | Super Admin | Approve doctor (`verificationStatus = 'verified'`) |
-| `PATCH` | `/api/admin/doctors/:doctorId/reject` | Super Admin | Reject doctor (`verificationStatus = 'rejected'`) |
+| `GET` | `/api/admin/doctors/pending` | Super Admin | View doctors awaiting verification |
+| `GET` | `/api/admin/doctors` | Super Admin | View all doctors |
+| `PATCH` | `/api/admin/doctors/:doctorId/approve` | Super Admin | Approve doctor verification |
+| `PATCH` | `/api/admin/doctors/:doctorId/reject` | Super Admin | Reject doctor verification |
 
 ---
 
@@ -207,41 +273,25 @@ Patients can discover verified doctors and request a clinical connection. Relati
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
 | `POST` | `/api/connections` | Patient | Request connection with a verified doctor |
-| `GET` | `/api/connections/my-doctors` | Patient | View doctor connections for authenticated patient |
-| `GET` | `/api/connections/requests` | Verified Doctor | View incoming pending connection requests |
-| `PATCH` | `/api/connections/:connectionId/accept` | Verified Doctor | Accept a pending connection request |
-| `PATCH` | `/api/connections/:connectionId/reject` | Verified Doctor | Reject a pending connection request |
-| `GET` | `/api/connections/my-patients` | Verified Doctor | View active accepted patients for authenticated doctor |
-
----
-
-## MongoDB Collections
-
-| Collection | Description |
-|---|---|
-| `users` | All accounts (`patient`, `doctor`, `super_admin`) |
-| `doctorprofiles` | Doctor credentials and professional details |
-| `patientprofiles` | Patient medical history background |
-| `doctorpatientconnections` | Relationship state between doctors and patients |
+| `GET` | `/api/connections/my-doctors` | Patient | View connections for patient |
+| `GET` | `/api/connections/requests` | Verified Doctor | View incoming pending requests |
+| `PATCH` | `/api/connections/:connectionId/accept` | Verified Doctor | Accept connection request |
+| `PATCH` | `/api/connections/:connectionId/reject` | Verified Doctor | Reject connection request |
+| `GET` | `/api/connections/my-patients` | Verified Doctor | View accepted patients |
 
 ---
 
 ## Testing
 
-Run the automated test suite covering all 24 Phase 5C end-to-end scenarios:
+Run automated test suites for all phases:
 
 ```bash
+# Phase 5C: Doctor Verification & Connections
 npm run test:5c
-```
 
-The test script automatically tests:
-- Super Admin login & doctor reviews
-- Pending doctor registration & blocking
-- Super Admin approval & rejection flows
-- `requireVerifiedDoctor` middleware enforcement
-- Patient connection requests & duplicate prevention
-- Doctor request acceptance & data isolation
-- Ownership security validation
+# Phase 5D: Machine Learning Inference & Security
+npm run test:5d
+```
 
 ---
 
@@ -259,10 +309,14 @@ The test script automatically tests:
 - Super Admin doctor review, approve, and reject workflows
 - `requireVerifiedDoctor` authorization middleware
 - Doctor-Patient connection model and lifecycles
-- Strict data ownership and role boundaries
+
+### Phase 5D — ML Inference Service Integration ✅
+- Python FastAPI microservice loading `balanced_efficientnet_b4_dr.pth`
+- EfficientNet-B4 5-class classifier architecture with ImageNet preprocessing
+- Softmax probability distributions, referable triage metrics, and clinical disclaimers
+- Secure Node.js proxy endpoint `POST /api/ml/predict` for verified doctors only
 
 ### Future Phases (Not implemented yet):
-- Screening API & image uploads
-- ML inference & PyTorch model connection
-- Reports & clinical screening workflow
-- Frontend-to-backend authentication and UI integration
+- Persistent Screening & Report records in MongoDB
+- Doctor approval & patient-visible report generation
+- Frontend-to-backend integration

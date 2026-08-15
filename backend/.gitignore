@@ -6,6 +6,25 @@
 # ─── Dependencies ─────────────────────────────────────────────────────────────
 node_modules/
 
+# ─── Python & ML Service ──────────────────────────────────────────────────────
+ml_service/venv/
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# ─── Large Model Weights (NEVER commit model checkpoints) ────────────────────
+*.pth
+*.pt
+*.onnx
+*.bin
+*.h5
+*.ckpt
+ml_service/models/*.pth
+
 # ─── Build outputs ────────────────────────────────────────────────────────────
 dist/
 

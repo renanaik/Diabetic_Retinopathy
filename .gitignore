@@ -6,6 +6,16 @@ node_modules/
 .env.*
 !.env.example
 
+# ─── Python & ML ──────────────────────────────────────────────────────────────
+**/venv/
+**/.venv/
+**/__pycache__/
+*.pyc
+*.pth
+*.pt
+*.onnx
+*.bin
+
 # ─── Build outputs ────────────────────────────────────────────────────────────
 dist/
 build/
