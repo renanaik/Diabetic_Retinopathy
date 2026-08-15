@@ -11,6 +11,7 @@
     "seed:admin": "ts-node src/scripts/seedSuperAdmin.ts",
     "test:5c": "ts-node src/scripts/testPhase5C.ts",
     "test:5d": "ts-node src/scripts/testPhase5D.ts",
+    "test:5e": "ts-node src/scripts/testPhase5E.ts",
     "ml:start": "ml_service/venv/bin/python ml_service/app.py"
   },
   "dependencies": {

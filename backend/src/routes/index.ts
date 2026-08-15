@@ -7,6 +7,7 @@
  * Phase 5B — /auth
  * Phase 5C — /admin, /connections
  * Phase 5D — /ml (AI Screening Prediction)
+ * Phase 5E — /screenings (Screening Workflow & Persistent AI Results)
  *
  * Future routes will be added here without modifying server.ts.
  */
@@ -17,6 +18,7 @@ import authRouter from './auth';
 import adminRouter from './admin';
 import connectionRouter from './connections';
 import mlRouter from './ml';
+import screeningRouter from './screenings';
 
 const router = Router();
 
@@ -33,9 +35,11 @@ router.use('/connections', connectionRouter);
 // ── Phase 5D ──────────────────────────────────────────────────────────────────
 router.use('/ml', mlRouter);
 
+// ── Phase 5E ──────────────────────────────────────────────────────────────────
+router.use('/screenings', screeningRouter);
+
 // ── Future phases ─────────────────────────────────────────────────────────────
 // router.use('/users',       usersRouter);
-// router.use('/screenings',  screeningsRouter);
 // router.use('/reports',     reportsRouter);
 
 export default router;
