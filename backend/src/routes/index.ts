@@ -4,7 +4,8 @@
  * All routes are mounted here and registered as /api/* in server.ts.
  *
  * Phase 5A — /health
- * Phase 5B — /auth  (signup, login, me)
+ * Phase 5B — /auth
+ * Phase 5C — /admin, /connections
  *
  * Future routes will be added here without modifying server.ts.
  */
@@ -12,6 +13,8 @@
 import { Router } from 'express';
 import healthRouter from './health';
 import authRouter from './auth';
+import adminRouter from './admin';
+import connectionRouter from './connections';
 
 const router = Router();
 
@@ -21,11 +24,12 @@ router.use('/health', healthRouter);
 // ── Phase 5B ──────────────────────────────────────────────────────────────────
 router.use('/auth', authRouter);
 
+// ── Phase 5C ──────────────────────────────────────────────────────────────────
+router.use('/admin', adminRouter);
+router.use('/connections', connectionRouter);
+
 // ── Future phases ─────────────────────────────────────────────────────────────
 // router.use('/users',       usersRouter);
-// router.use('/doctors',     doctorsRouter);
-// router.use('/patients',    patientsRouter);
-// router.use('/connections', connectionsRouter);
 // router.use('/screenings',  screeningsRouter);
 // router.use('/reports',     reportsRouter);
 

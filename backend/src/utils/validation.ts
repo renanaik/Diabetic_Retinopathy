@@ -98,6 +98,21 @@ export function validateRequiredString(
   return null;
 }
 
+export function validateObjectId(
+  id: unknown,
+  field: string,
+  label: string = 'ID'
+): ValidationError | null {
+  if (!id || typeof id !== 'string' || id.trim() === '') {
+    return { field, message: `${label} is required` };
+  }
+  const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+  if (!objectIdRegex.test(id.trim())) {
+    return { field, message: `${label} must be a valid 24-character hexadecimal ID` };
+  }
+  return null;
+}
+
 // ─── Aggregate validators ─────────────────────────────────────────────────────
 
 /**

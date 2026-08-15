@@ -26,22 +26,29 @@ backend/
 │   ├── config/
 │   │   └── db.ts                  ← MongoDB connection
 │   ├── controllers/
-│   │   └── auth.controller.ts     ← signup, login, me
+│   │   ├── admin.controller.ts    ← Doctor verification endpoints
+│   │   ├── auth.controller.ts     ← Signup, login, me
+│   │   └── connection.controller.ts ← Doctor-Patient connection workflows
 │   ├── middleware/
 │   │   ├── authenticate.ts        ← JWT verification
 │   │   ├── authorizeRoles.ts      ← Role-based access control
+│   │   ├── requireVerifiedDoctor.ts ← Verified doctor enforcement
 │   │   ├── errorHandler.ts        ← Centralized error handling
 │   │   └── notFound.ts            ← 404 catch-all
 │   ├── models/
 │   │   ├── User.ts                ← User model (all roles)
 │   │   ├── DoctorProfile.ts       ← Doctor professional info
-│   │   └── PatientProfile.ts      ← Patient medical background
+│   │   ├── PatientProfile.ts      ← Patient medical background
+│   │   └── DoctorPatientConnection.ts ← Connection requests & status
 │   ├── routes/
 │   │   ├── index.ts               ← Route aggregator
+│   │   ├── admin.ts               ← /api/admin/*
 │   │   ├── auth.ts                ← /api/auth/*
+│   │   ├── connections.ts         ← /api/connections/*
 │   │   └── health.ts              ← GET /api/health
 │   ├── scripts/
-│   │   └── seedSuperAdmin.ts      ← Super Admin seed script
+│   │   ├── seedSuperAdmin.ts      ← Super Admin seed script
+│   │   └── testPhase5C.ts         ← Automated test suite for Phase 5C
 │   ├── utils/
 │   │   ├── jwt.ts                 ← JWT sign/verify
 │   │   ├── logger.ts              ← Console logger
@@ -139,159 +146,72 @@ npm start
 | `doctor` | Ophthalmologists. Created via public signup. Start as `pending`. |
 | `super_admin` | Platform administrator. Created **only** via `npm run seed:admin`. |
 
-## Doctor Verification Status
+## Doctor Verification Workflow
 
 | Status | Meaning |
 |---|---|
 | `pending` | New doctor awaiting admin review |
-| `verified` | Doctor approved by admin (Phase 5C) |
-| `rejected` | Doctor rejected by admin (Phase 5C) |
+| `verified` | Doctor approved by admin. Clinical permissions granted. |
+| `rejected` | Doctor rejected by admin. Clinical permissions withheld. |
 | `not_applicable` | Used for patients and super_admin |
 
-Doctors with `verificationStatus: "pending"` can authenticate (receive a token) but are restricted from doctor functionality. The frontend redirects them to a verification-pending page.
+### Verification Security Rules
+1. **Frontend restrictions are NOT the security boundary**: The backend middleware (`requireVerifiedDoctor`) enforces that only verified doctors can access clinical operations.
+2. Unverified or rejected doctors can authenticate to receive their profile status, but cannot access patient data or accept connection requests.
+3. Only `super_admin` accounts can approve or reject doctor credentials.
 
 ---
 
-## API
+## Doctor ↔ Patient Connections
 
-### `GET /api/health`
+Patients can discover verified doctors and request a clinical connection. Relationships maintain state:
+- `pending`: Patient requested a connection; waiting for doctor's approval.
+- `accepted`: Doctor accepted the request; active clinical relationship established.
+- `rejected`: Doctor rejected the request.
 
-Returns server and database status. No authentication required.
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "RetinaCare AI API is running",
-  "database": "connected",
-  "environment": "development",
-  "timestamp": "2026-08-15T14:00:00.000Z"
-}
-```
+### Ownership & Access Control Rules
+- **Strict Tenant & Identity Isolation**: Doctors can ONLY see and manage requests directed to them (`doctorId = req.user.id`).
+- **Patient Isolation**: Patients can ONLY view their own connections (`patientId = req.user.id`).
+- **No Self-Connections**: Patients cannot request connections with themselves.
+- **Verified Doctors Only**: Connection requests can only be sent to doctors whose `verificationStatus === 'verified'`.
+- **Client IDs Untrusted**: All mutation actions derive doctor/patient identities directly from authenticated `req.user` tokens.
 
 ---
 
-### `POST /api/auth/signup`
+## API Endpoints
 
-Register a new patient or doctor account. **Super Admin signup is blocked.**
+### Health & Auth Endpoints
 
-**Patient request body:**
-```json
-{
-  "name": "Alice Patient",
-  "email": "alice@example.com",
-  "password": "Test@1234",
-  "role": "patient",
-  "dateOfBirth": "1990-01-01",
-  "gender": "Female",
-  "phone": "+91-9876543210",
-  "medicalHistory": "Type 2 diabetes",
-  "diabetesHistory": "HbA1c 7.1%",
-  "eyeHistory": "No prior conditions"
-}
-```
-
-**Doctor request body:**
-```json
-{
-  "name": "Dr. Priya Shah",
-  "email": "drpriya@example.com",
-  "password": "Doctor@5678",
-  "role": "doctor",
-  "licenseNumber": "MCI-GUJ-2019-0042",
-  "medicalCouncil": "Medical Council of India",
-  "specialization": "Ophthalmology",
-  "hospital": "City Eye Hospital",
-  "yearsOfExperience": 8
-}
-```
-
-**Password policy:** minimum 8 characters, at least 1 uppercase, 1 digit, 1 special character.
-
-**Response (201):**
-```json
-{
-  "success": true,
-  "message": "Patient account created successfully.",
-  "data": {
-    "token": "<jwt>",
-    "user": {
-      "id": "...",
-      "name": "Alice Patient",
-      "email": "alice@example.com",
-      "role": "patient",
-      "isActive": true,
-      "verificationStatus": "not_applicable",
-      "createdAt": "...",
-      "updatedAt": "..."
-    }
-  }
-}
-```
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `GET` | `/api/health` | Public | Server & MongoDB connection status |
+| `POST` | `/api/auth/signup` | Public | Register patient or doctor (Super Admin blocked) |
+| `POST` | `/api/auth/login` | Public | Authenticate with email & password, returns JWT |
+| `GET` | `/api/auth/me` | Authenticated | Get current authenticated user profile |
 
 ---
 
-### `POST /api/auth/login`
+### Super Admin Endpoints (`/api/admin/*`)
 
-Authenticate with email and password. Returns a JWT.
-
-**Request body:**
-```json
-{
-  "email": "alice@example.com",
-  "password": "Test@1234"
-}
-```
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "message": "Login successful.",
-  "data": {
-    "token": "<jwt>",
-    "user": { ... }
-  }
-}
-```
-
-The token is a Bearer JWT — include it in all protected requests:
-```
-Authorization: Bearer <token>
-```
-
-**Logout:** JWT is stateless. Logout is handled client-side by discarding the stored token.
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `GET` | `/api/admin/doctors/pending` | Super Admin | View all doctors awaiting verification |
+| `GET` | `/api/admin/doctors` | Super Admin | View all doctors (supports `?status=` query filter) |
+| `PATCH` | `/api/admin/doctors/:doctorId/approve` | Super Admin | Approve doctor (`verificationStatus = 'verified'`) |
+| `PATCH` | `/api/admin/doctors/:doctorId/reject` | Super Admin | Reject doctor (`verificationStatus = 'rejected'`) |
 
 ---
 
-### `GET /api/auth/me`
+### Connection Endpoints (`/api/connections/*`)
 
-Returns the currently authenticated user's profile.
-
-**Headers required:**
-```
-Authorization: Bearer <token>
-```
-
-**Response (200):**
-```json
-{
-  "success": true,
-  "message": "Authenticated user profile.",
-  "data": {
-    "user": {
-      "id": "...",
-      "name": "Alice Patient",
-      "email": "alice@example.com",
-      "role": "patient",
-      "isActive": true,
-      "verificationStatus": "not_applicable",
-      "createdAt": "...",
-      "updatedAt": "..."
-    }
-  }
-}
-```
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `POST` | `/api/connections` | Patient | Request connection with a verified doctor |
+| `GET` | `/api/connections/my-doctors` | Patient | View doctor connections for authenticated patient |
+| `GET` | `/api/connections/requests` | Verified Doctor | View incoming pending connection requests |
+| `PATCH` | `/api/connections/:connectionId/accept` | Verified Doctor | Accept a pending connection request |
+| `PATCH` | `/api/connections/:connectionId/reject` | Verified Doctor | Reject a pending connection request |
+| `GET` | `/api/connections/my-patients` | Verified Doctor | View active accepted patients for authenticated doctor |
 
 ---
 
@@ -299,65 +219,50 @@ Authorization: Bearer <token>
 
 | Collection | Description |
 |---|---|
-| `users` | All accounts (patient, doctor, super_admin) |
-| `doctorprofiles` | Doctor professional information |
-| `patientprofiles` | Patient medical background |
+| `users` | All accounts (`patient`, `doctor`, `super_admin`) |
+| `doctorprofiles` | Doctor credentials and professional details |
+| `patientprofiles` | Patient medical history background |
+| `doctorpatientconnections` | Relationship state between doctors and patients |
 
 ---
 
-## Testing Endpoints
+## Testing
+
+Run the automated test suite covering all 24 Phase 5C end-to-end scenarios:
 
 ```bash
-# Patient signup
-curl -X POST http://localhost:5001/api/auth/signup \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Test Patient","email":"test@patient.com","password":"Test@1234","role":"patient","dateOfBirth":"1990-01-01","gender":"Male","phone":"+91-9000000000","medicalHistory":"None","diabetesHistory":"None","eyeHistory":"None"}'
-
-# Doctor signup
-curl -X POST http://localhost:5001/api/auth/signup \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Dr Test","email":"test@doctor.com","password":"Doctor@1234","role":"doctor","licenseNumber":"LIC001","medicalCouncil":"MCI","specialization":"Ophthalmology","hospital":"Test Hospital","yearsOfExperience":5}'
-
-# Login
-curl -X POST http://localhost:5001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@patient.com","password":"Test@1234"}'
-
-# Get profile (paste token from login)
-curl http://localhost:5001/api/auth/me \
-  -H "Authorization: Bearer <TOKEN>"
-
-# Seed Super Admin
-npm run seed:admin
+npm run test:5c
 ```
+
+The test script automatically tests:
+- Super Admin login & doctor reviews
+- Pending doctor registration & blocking
+- Super Admin approval & rejection flows
+- `requireVerifiedDoctor` middleware enforcement
+- Patient connection requests & duplicate prevention
+- Doctor request acceptance & data isolation
+- Ownership security validation
 
 ---
 
-## Phase 5A — Foundation ✅
+## Phase Roadmap Status
 
+### Phase 5A — Foundation ✅
 - Express server, MongoDB connection, CORS, health endpoint, error handling
 
-## Phase 5B — Authentication & Users ✅
+### Phase 5B — Authentication & Users ✅
+- User, DoctorProfile, PatientProfile models
+- Password hashing (bcryptjs) & JWT authentication
+- Role enforcement & Super Admin seeding
 
-✅ User model (patient / doctor / super_admin)  
-✅ DoctorProfile model  
-✅ PatientProfile model  
-✅ bcryptjs password hashing  
-✅ JWT authentication  
-✅ `POST /api/auth/signup` (patient + doctor; super_admin blocked)  
-✅ `POST /api/auth/login`  
-✅ `GET /api/auth/me` (protected)  
-✅ `authenticate` middleware  
-✅ `authorizeRoles` middleware  
-✅ Super Admin seed script (`npm run seed:admin`)  
-✅ Doctor starts as `verificationStatus: "pending"`  
-✅ Role derived from database (never trusted from client)
+### Phase 5C — Super Admin Doctor Verification & Connections ✅
+- Super Admin doctor review, approve, and reject workflows
+- `requireVerifiedDoctor` authorization middleware
+- Doctor-Patient connection model and lifecycles
+- Strict data ownership and role boundaries
 
-**Not implemented yet (Phase 5C+):**
-
-❌ Doctor approval / rejection endpoints  
-❌ Patient-doctor connections  
-❌ Screening API  
-❌ Image upload  
-❌ ML inference  
-❌ Frontend-backend authentication integration  
+### Future Phases (Not implemented yet):
+- Screening API & image uploads
+- ML inference & PyTorch model connection
+- Reports & clinical screening workflow
+- Frontend-to-backend authentication and UI integration
