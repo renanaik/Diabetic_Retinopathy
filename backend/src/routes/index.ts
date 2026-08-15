@@ -19,6 +19,7 @@ import adminRouter from './admin';
 import connectionRouter from './connections';
 import mlRouter from './ml';
 import screeningRouter from './screenings';
+import patientRouter from './patient';
 
 const router = Router();
 
@@ -35,11 +36,13 @@ router.use('/connections', connectionRouter);
 // ── Phase 5D ──────────────────────────────────────────────────────────────────
 router.use('/ml', mlRouter);
 
-// ── Phase 5E ──────────────────────────────────────────────────────────────────
+// ── Phase 5E & 5F ─────────────────────────────────────────────────────────────
 router.use('/screenings', screeningRouter);
+
+// ── Phase 5G ──────────────────────────────────────────────────────────────────
+router.use('/patient', patientRouter);
 
 // ── Future phases ─────────────────────────────────────────────────────────────
 // router.use('/users',       usersRouter);
-// router.use('/reports',     reportsRouter);
 
 export default router;

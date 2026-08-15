@@ -222,61 +222,25 @@ Return Structured Screening Details to Doctor
 | `POST` | `/api/screenings` | Verified Doctor | Create and analyze a new retinal screening for an accepted patient (form fields: `patientId`, `file` or `image`) |
 | `GET` | `/api/screenings` | Verified Doctor | List screenings conducted by authenticated doctor (supports `?patientId=` query filter) |
 | `GET` | `/api/screenings/:id` | Verified Doctor | Retrieve full screening record by ID (ownership strictly enforced) |
+| `PATCH` | `/api/screenings/:id/review` | Verified Doctor | Submit clinical review decision (`approved` or `rejected`) with optional notes |
 
-#### Example: `POST /api/screenings`
-```bash
-curl -X POST http://localhost:5001/api/screenings \
-  -H "Authorization: Bearer <VERIFIED_DOCTOR_JWT>" \
-  -F "patientId=6a80886f4335e3a0fa1dee20" \
-  -F "file=@/path/to/retina.png"
-```
+---
 
-#### Example Response (201 Created)
-```json
-{
-  "success": true,
-  "message": "Retinal screening created and analyzed successfully.",
-  "data": {
-    "screening": {
-      "id": "6a8088734335e3a0fa1dee50",
-      "patientId": "6a80886f4335e3a0fa1dee20",
-      "doctorId": "6a80886c4335e3a0fa1dedfe",
-      "image": {
-        "originalFilename": "fundus_left.png",
-        "mimeType": "image/png",
-        "size": 245890
-      },
-      "aiResult": {
-        "predictedClass": 1,
-        "predictedLabel": "Mild DR",
-        "confidence": 0.8328,
-        "classProbabilities": {
-          "0": 0.1474,
-          "1": 0.8328,
-          "2": 0.0197,
-          "3": 0.0,
-          "4": 0.0
-        },
-        "referable": false,
-        "referableProbability": 0.0198,
-        "disclaimer": "AI prediction is a screening aid and requires doctor review."
-      },
-      "status": "pending_review",
-      "patient": {
-        "id": "6a80886f4335e3a0fa1dee20",
-        "name": "Alice Patient",
-        "email": "alice@test.com"
-      },
-      "doctor": {
-        "id": "6a80886c4335e3a0fa1dedfe",
-        "name": "Dr. Alpha Specialist"
-      },
-      "createdAt": "2026-08-15T15:40:35.123Z",
-      "updatedAt": "2026-08-15T15:40:35.123Z"
-    }
-  }
-}
-```
+### Patient Screening & Report Endpoints (`/api/patient/screenings/*` — Phase 5G)
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `GET` | `/api/patient/screenings` | Patient | List authenticated patient's reviewed screening history (sorted newest first) |
+| `GET` | `/api/patient/screenings/:id` | Patient | Retrieve single completed screening report (ownership enforced) |
+
+#### Patient Clinical Release & Privacy Rules:
+1. **Authenticated Patient Only**: Only users with role `patient` can access `/api/patient/*`. Doctors and Super Admins receive `403 Forbidden`.
+2. **Clinical Release Rule**: Patients can ONLY view screenings with status `approved` or `rejected`. Screenings in `pending_review` status return `404 Not Found` to prevent premature disclosure of unreviewed clinical results.
+3. **Strict Ownership Enforcement**: Patient A cannot access Patient B's screening reports (`403 Forbidden` on single report, excluded from list query).
+4. **AI vs Doctor Distinction**:
+   - **AI Result (`aiResult`)**: Screening aid with predicted class, label, confidence, probability distribution, and triage status. Remains immutable.
+   - **Doctor Review (`review`)**: Clinical decision (`approved`/`rejected`), clinician notes, review timestamp, and reviewing doctor information.
+5. **No Medical Claims**: AI predictions are strictly classified as clinical decision support aids requiring ophthalmologist review.
 
 ---
 
@@ -336,6 +300,12 @@ npm run test:5d
 
 # Phase 5E: Retinal Screening Workflow & Persistence
 npm run test:5e
+
+# Phase 5F: Doctor Review & Approval Workflow
+npm run test:5f
+
+# Phase 5G: Patient Screening Results & Reports
+npm run test:5g
 ```
 
 ---
@@ -365,9 +335,16 @@ npm run test:5e
 - `Screening` Mongoose model persisting image metadata, full AI output, and `pending_review` status
 - `POST /api/screenings` validating active accepted doctor-patient connection before screening
 - `GET /api/screenings` & `GET /api/screenings/:id` with strict ownership isolation
-- Comprehensive patient privacy protections and zero orphaned record guarantees
+
+### Phase 5F — Doctor Review & Screening Approval ✅
+- `PATCH /api/screenings/:id/review` for clinical approval or rejection
+- State transition guards (`pending_review` → `approved` / `rejected`), 409 on re-review
+- AI prediction immutability and separation from doctor decision
+
+### Phase 5G — Patient Screening Results & Reports ✅
+- `GET /api/patient/screenings` & `GET /api/patient/screenings/:id`
+- Release rule: Only `approved` and `rejected` screenings visible to patients (`pending_review` returns 404)
+- Strict patient ownership isolation and distinct AI vs doctor review presentation
 
 ### Future Phases (Not implemented yet):
-- Phase 5F: Doctor report approval, notes, and finalization
-- Phase 5G: Patient-visible reports and screening viewer
 - Phase 5H: Frontend-to-backend integration

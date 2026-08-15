@@ -13,6 +13,7 @@
     "test:5d": "ts-node src/scripts/testPhase5D.ts",
     "test:5e": "ts-node src/scripts/testPhase5E.ts",
     "test:5f": "ts-node src/scripts/testPhase5F.ts",
+    "test:5g": "ts-node src/scripts/testPhase5G.ts",
     "ml:start": "ml_service/venv/bin/python ml_service/app.py"
   },
   "dependencies": {

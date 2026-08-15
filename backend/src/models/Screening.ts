@@ -181,7 +181,8 @@ screeningSchema.index({ doctorId: 1, patientId: 1, createdAt: -1 });
 // Doctor workqueue (pending reviews)
 screeningSchema.index({ doctorId: 1, status: 1 });
 
-// Patient history lookup (for future phases)
+// Patient history lookup (Phase 5G: completed reviews filtered by status)
+screeningSchema.index({ patientId: 1, status: 1, createdAt: -1 });
 screeningSchema.index({ patientId: 1, createdAt: -1 });
 
 // ─── Model ────────────────────────────────────────────────────────────────────
