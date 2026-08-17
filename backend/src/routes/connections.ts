@@ -22,6 +22,7 @@ import {
   rejectConnection,
   getPatientDoctors,
   getDoctorPatients,
+  getAvailableDoctors,
 } from '../controllers/connection.controller';
 import { authenticate } from '../middleware/authenticate';
 import { authorizeRoles } from '../middleware/authorizeRoles';
@@ -33,6 +34,7 @@ const router = Router();
 router.use(authenticate);
 
 // ── Patient Endpoints ─────────────────────────────────────────────────────────
+router.get('/doctors', authorizeRoles('patient'), getAvailableDoctors);
 router.post('/', authorizeRoles('patient'), requestConnection);
 router.get('/my-doctors', authorizeRoles('patient'), getPatientDoctors);
 

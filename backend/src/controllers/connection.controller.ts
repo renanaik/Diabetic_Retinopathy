@@ -441,3 +441,71 @@ export async function getDoctorPatients(
     next(err);
   }
 }
+
+// ─── GET /api/connections/doctors (Patient discovers verified doctors) ─────────
+
+export async function getAvailableDoctors(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const patientId = req.user?.id;
+
+    const doctors = await User.find({
+      role: 'doctor',
+      verificationStatus: 'verified',
+      isActive: true,
+    }).sort({ name: 1 });
+
+    const doctorIds = doctors.map((doc) => doc._id);
+    const doctorProfiles = await DoctorProfile.find({ userId: { $in: doctorIds } });
+    const profileMap = new Map(doctorProfiles.map((p) => [p.userId.toString(), p]));
+
+    let connectionMap = new Map<string, { id: string; status: string }>();
+    if (patientId) {
+      const connections = await DoctorPatientConnection.find({
+        patientId: new mongoose.Types.ObjectId(patientId),
+        doctorId: { $in: doctorIds },
+      });
+      connectionMap = new Map(
+        connections.map((c) => [c.doctorId.toString(), { id: c._id.toString(), status: c.status }])
+      );
+    }
+
+    const formattedDoctors = doctors.map((doc) => {
+      const profile = profileMap.get(doc._id.toString());
+      const conn = connectionMap.get(doc._id.toString());
+
+      return {
+        id: doc._id.toString(),
+        name: doc.name,
+        email: doc.email,
+        verificationStatus: doc.verificationStatus,
+        connectionStatus: conn ? conn.status : 'none',
+        connectionId: conn ? conn.id : null,
+        profile: profile
+          ? {
+              licenseNumber: profile.licenseNumber,
+              medicalCouncil: profile.medicalCouncil,
+              specialization: profile.specialization,
+              hospital: profile.hospital,
+              yearsOfExperience: profile.yearsOfExperience,
+            }
+          : null,
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Verified doctors retrieved successfully.',
+      data: {
+        count: formattedDoctors.length,
+        doctors: formattedDoctors,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
