@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, ArrowRight, Brain, ShieldCheck, Users, AlertTriangle } from 'lucide-react';
+import { Eye, ArrowRight, Brain, ShieldCheck, Users, AlertTriangle, GraduationCap, CheckCircle2 } from 'lucide-react';
 import { SectionWrapper } from '../components/common/SectionWrapper';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 
@@ -39,11 +39,42 @@ const PILLARS = [
   },
 ];
 
+const TEAM_MEMBERS = [
+  {
+    name: 'Rena Naik',
+    initials: 'RN',
+    contributions: [
+      'Backend development',
+      'Frontend development',
+      'Testing for model selection',
+    ],
+  },
+  {
+    name: 'Satvi Akola',
+    initials: 'SA',
+    contributions: [
+      'Testing for model selection',
+      'Training of the selected model',
+      'Backend development',
+    ],
+  },
+  {
+    name: 'Shreya Loriya',
+    initials: 'SL',
+    contributions: [
+      'Frontend development',
+      'Testing for model selection',
+      'Backend development',
+    ],
+  },
+];
+
 export const AboutPage: React.FC = () => {
-  const introRef   = useScrollReveal<HTMLDivElement>();
+  const introRef = useScrollReveal<HTMLDivElement>();
   const pillarsRef = useScrollReveal<HTMLDivElement>();
-  const motiveRef  = useScrollReveal<HTMLDivElement>();
-  const disclaRef  = useScrollReveal<HTMLDivElement>();
+  const motiveRef = useScrollReveal<HTMLDivElement>();
+  const teamRef = useScrollReveal<HTMLDivElement>();
+  const disclaRef = useScrollReveal<HTMLDivElement>();
 
   return (
     <>
@@ -186,8 +217,69 @@ export const AboutPage: React.FC = () => {
         </div>
       </SectionWrapper>
 
-      {/* ── Medical Disclaimer ── */}
+      {/* ── Meet the Team ── */}
       <SectionWrapper bg="default">
+        <div ref={teamRef} className="reveal max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 bg-brand-50 dark:bg-brand-950/50 border border-brand-200 dark:border-brand-800 rounded-full px-4 py-1.5 mb-4">
+              <GraduationCap className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+              <span className="text-xs font-semibold text-brand-700 dark:text-brand-300 uppercase tracking-wide">
+                B.Tech Project Team
+              </span>
+            </div>
+            <h2 className="font-display text-2xl md:text-3xl font-bold text-[var(--color-text)] mb-4">
+              Meet the Team
+            </h2>
+            <p className="text-[var(--color-text-muted)] leading-relaxed max-w-2xl mx-auto text-sm md:text-base">
+              RetinaCare AI is a collaborative B.Tech Computer Engineering project at CHARUSAT, combining deep learning, computer vision, and full-stack development for AI-assisted diabetic retinopathy screening.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {TEAM_MEMBERS.map(({ name, initials, contributions }) => (
+              <div
+                key={name}
+                className="card p-6 flex flex-col justify-between hover:border-brand-500/40 transition-all duration-200"
+              >
+                <div>
+                  {/* Member Avatar / Initials */}
+                  <div className="flex items-center gap-4 mb-5">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-600/15 to-cyan-600/15 border border-brand-500/30 text-brand-600 dark:text-brand-400 font-display font-bold text-base flex items-center justify-center flex-shrink-0 shadow-xs">
+                      {initials}
+                    </div>
+                    <div>
+                      <h3 className="font-display font-bold text-lg text-[var(--color-text)] leading-snug">
+                        {name}
+                      </h3>
+                      <span className="text-xs text-[var(--color-text-muted)]">
+                        B.Tech Computer Engineering
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Member Contributions */}
+                  <div className="pt-3 border-t border-[var(--color-border)]">
+                    <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
+                      Contributions
+                    </p>
+                    <ul className="space-y-2">
+                      {contributions.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-xs text-[var(--color-text)] leading-relaxed">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-brand-500 flex-shrink-0 mt-0.5" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </SectionWrapper>
+
+      {/* ── Medical Disclaimer ── */}
+      <SectionWrapper bg="surface">
         <div ref={disclaRef} className="reveal max-w-3xl mx-auto">
           <div className="card p-8 md:p-10 border-l-4 border-amber-400">
             <div className="flex items-start gap-4">
@@ -205,7 +297,7 @@ export const AboutPage: React.FC = () => {
                     AI-generated results are intended solely to support a screening workflow and
                     must be reviewed by a qualified healthcare professional. They are{' '}
                     <strong className="text-[var(--color-text)]">not a substitute for professional
-                    medical diagnosis, advice, or treatment</strong>.
+                      medical diagnosis, advice, or treatment</strong>.
                   </p>
                   <p>
                     Always consult a licensed ophthalmologist or healthcare provider for any
