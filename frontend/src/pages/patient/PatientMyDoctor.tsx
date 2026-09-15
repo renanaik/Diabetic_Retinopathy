@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Stethoscope, Building2, Award, Mail, Calendar, CheckCircle2, Clock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { formatDoctorName } from '../../utils/doctorName';
 
 interface DoctorConnection {
   id: string;
@@ -131,7 +132,7 @@ export const PatientMyDoctor: React.FC = () => {
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="font-display font-bold text-lg text-[var(--color-text)]">
-                                Dr. {doc.name}
+                               {formatDoctorName(doc.name)}
                               </h3>
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3" />
@@ -217,7 +218,7 @@ export const PatientMyDoctor: React.FC = () => {
                         </div>
                         <div>
                           <p className="font-semibold text-sm text-[var(--color-text)]">
-                            Dr. {doc.name}
+                            {formatDoctorName(doc.name)}
                           </p>
                           <p className="text-xs text-[var(--color-text-muted)]">
                             {doc.profile?.specialization || 'Ophthalmology'} • Requested on {new Date(conn.createdAt).toLocaleDateString()}

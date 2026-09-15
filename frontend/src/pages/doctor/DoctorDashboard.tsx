@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, Users, PlusCircle, BarChart3, Inbox, ArrowRight, Activity, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { formatDoctorName } from '../../utils/doctorName';
 
 export const DoctorDashboard: React.FC = () => {
   const { user, token } = useAuth();
@@ -60,7 +61,7 @@ export const DoctorDashboard: React.FC = () => {
             Doctor Workspace
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">
-            Welcome back, Dr. {user?.name || 'Doctor'}. Here is your clinical screening overview.
+            Welcome back, {formatDoctorName(user?.name || 'Doctor')}. Here is your clinical screening overview.
           </p>
         </div>
         <Link to="/doctor/new-screening" className="btn btn-primary btn-md inline-flex items-center gap-2">

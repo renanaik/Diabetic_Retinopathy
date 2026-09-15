@@ -15,6 +15,7 @@ import {
   Award,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { formatDoctorName } from '../../utils/doctorName';
 
 interface ClassProbabilities {
   '0': number;
@@ -211,7 +212,7 @@ export const PatientReportDetail: React.FC = () => {
             <span className="font-semibold uppercase tracking-wider text-[var(--color-text-muted)] block mb-1 text-[10px]">
               Attending Ophthalmologist
             </span>
-            <p className="text-sm font-bold text-[var(--color-text)]">Dr. {report.doctor?.name || 'Ophthalmologist'}</p>
+            <p className="text-sm font-bold text-[var(--color-text)]">{formatDoctorName(report.doctor?.name || 'Ophthalmologist')}</p>
             <p className="text-[var(--color-text-muted)]">{report.doctor?.specialization}</p>
             <p className="text-[var(--color-text-muted)]">{report.doctor?.hospital}</p>
           </div>

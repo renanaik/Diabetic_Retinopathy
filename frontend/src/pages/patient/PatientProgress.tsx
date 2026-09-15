@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { formatDoctorName } from '../../utils/doctorName';
 
 interface ClassProbabilities {
   '0': number;
@@ -378,7 +379,7 @@ export const PatientProgress: React.FC = () => {
                         </span>
                       </div>
                       <p className="text-[var(--color-text-muted)]">
-                        Screening Date: {new Date(hoveredPoint.createdAt).toLocaleString()} • Attending: Dr. {hoveredPoint.doctor?.name || 'Doctor'}
+                        Screening Date: {new Date(hoveredPoint.createdAt).toLocaleString()} • Attending: {formatDoctorName(hoveredPoint.doctor?.name || 'Doctor')}
                       </p>
                       {hoveredPoint.review?.doctorNotes && (
                         <p className="text-[var(--color-text)] italic pt-1">
@@ -451,7 +452,7 @@ export const PatientProgress: React.FC = () => {
                           {(s.aiResult.confidence * 100).toFixed(1)}%
                         </td>
                         <td className="py-3 px-3 text-[var(--color-text)]">
-                          Dr. {s.doctor?.name || 'Attending'}
+                          {formatDoctorName(s.doctor?.name || 'Attending')}
                         </td>
                         <td className="py-3 px-3 text-right">
                           <Link
