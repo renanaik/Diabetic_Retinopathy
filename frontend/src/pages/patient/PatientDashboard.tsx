@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, TrendingUp, UserCheck, ArrowRight, ShieldCheck, Stethoscope, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { formatDoctorName } from '../../utils/doctorName';
 
 export const PatientDashboard: React.FC = () => {
   const { user, token } = useAuth();
@@ -124,7 +125,7 @@ export const PatientDashboard: React.FC = () => {
           </div>
           <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
             {latestDoctorName
-              ? `Your assigned primary specialist is Dr. ${latestDoctorName}. You can schedule routine screenings and review historical records.`
+              ? `Your assigned primary specialist is ${formatDoctorName(latestDoctorName)}. You can schedule routine screenings and review historical records.`
               : 'Connect with a certified ophthalmologist to unlock AI retinal examinations and personalized clinical evaluations.'}
           </p>
           <div className="flex items-center gap-2.5">

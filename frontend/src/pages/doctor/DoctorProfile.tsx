@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { formatDoctorName } from '../../utils/doctorName';
 import {
   Mail,
   Phone,
@@ -260,7 +261,7 @@ export const DoctorProfile: React.FC = () => {
             <div className="space-y-2">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <h1 className="font-display text-2xl md:text-3xl font-bold text-[var(--color-text)]">
-                  Dr. {user?.name}
+                  {formatDoctorName(user?.name)}
                 </h1>
                 <div className="flex items-center gap-2 mt-1 sm:mt-0 justify-center">
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${verBadgeClasses} capitalize inline-flex items-center gap-1`}>
