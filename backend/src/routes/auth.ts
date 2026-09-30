@@ -10,7 +10,7 @@
  */
 
 import { Router } from 'express';
-import { signup, login, me } from '../controllers/auth.controller';
+import { signup, login, me, changePassword } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/authenticate';
 
 const router = Router();
@@ -21,5 +21,7 @@ router.post('/login', login);
 
 // ── Protected routes ───────────────────────────────────────────────────────────
 router.get('/me', authenticate, me);
+router.put('/change-password', authenticate, changePassword);
+router.post('/change-password', authenticate, changePassword);
 
 export default router;

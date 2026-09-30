@@ -18,6 +18,7 @@ import cors from 'cors';
 
 import { connectDB } from './config/db';
 import { logger } from './utils/logger';
+import { ensureAllPatientsHaveIds } from './utils/patientId';
 import apiRouter from './routes/index';
 import { notFound } from './middleware/notFound';
 import { errorHandler } from './middleware/errorHandler';
@@ -58,6 +59,9 @@ app.use(errorHandler);
 async function start(): Promise<void> {
   // Connect to MongoDB first — exits process if MONGO_URI is missing or fails
   await connectDB();
+
+  // Ensure all existing and new patients have permanent unique Patient IDs (RC-XXXXXX)
+  await ensureAllPatientsHaveIds();
 
   app.listen(PORT, () => {
     logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

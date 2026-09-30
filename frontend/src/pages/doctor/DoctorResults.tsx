@@ -11,8 +11,16 @@ import {
   ChevronDown,
   ChevronUp,
   Filter,
+  IdCard,
+  Printer,
+  Download,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import {
+  printStandaloneReport,
+  downloadStandaloneReport,
+  StandaloneReportData,
+} from '../../utils/reportGenerator';
 
 interface ClassProbabilities {
   '0': number;
@@ -53,8 +61,15 @@ interface ScreeningItem {
   review?: DoctorReviewData;
   patient: {
     id: string;
+    patientId?: string;
     name: string;
     email: string;
+    profile?: {
+      patientId?: string;
+      dateOfBirth?: string;
+      gender?: string;
+      phone?: string;
+    } | null;
   } | null;
   createdAt: string;
   updatedAt: string;
@@ -169,6 +184,62 @@ export const DoctorResults: React.FC = () => {
     setExpandedDetails((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const handlePrintStandalone = (s: ScreeningItem) => {
+    const pId = s.patient?.patientId || s.patient?.profile?.patientId || 'RC-000000';
+    const standaloneData: StandaloneReportData = {
+      reportId: s.id,
+      createdAt: s.createdAt,
+      patient: {
+        name: s.patient?.name || 'Patient',
+        patientId: pId,
+        email: s.patient?.email,
+        dateOfBirth: s.patient?.profile?.dateOfBirth,
+        gender: s.patient?.profile?.gender,
+        phone: s.patient?.profile?.phone,
+      },
+      doctor: {
+        name: 'Attending Ophthalmologist',
+      },
+      image: s.image,
+      aiResult: {
+        predictedClass: s.aiResult.predictedClass,
+        predictedLabel: s.aiResult.predictedLabel,
+        referable: s.aiResult.referable,
+        disclaimer: s.aiResult.disclaimer,
+      },
+      review: s.review,
+    };
+    printStandaloneReport(standaloneData);
+  };
+
+  const handleDownloadStandalone = (s: ScreeningItem) => {
+    const pId = s.patient?.patientId || s.patient?.profile?.patientId || 'RC-000000';
+    const standaloneData: StandaloneReportData = {
+      reportId: s.id,
+      createdAt: s.createdAt,
+      patient: {
+        name: s.patient?.name || 'Patient',
+        patientId: pId,
+        email: s.patient?.email,
+        dateOfBirth: s.patient?.profile?.dateOfBirth,
+        gender: s.patient?.profile?.gender,
+        phone: s.patient?.profile?.phone,
+      },
+      doctor: {
+        name: 'Attending Ophthalmologist',
+      },
+      image: s.image,
+      aiResult: {
+        predictedClass: s.aiResult.predictedClass,
+        predictedLabel: s.aiResult.predictedLabel,
+        referable: s.aiResult.referable,
+        disclaimer: s.aiResult.disclaimer,
+      },
+      review: s.review,
+    };
+    downloadStandaloneReport(standaloneData);
+  };
+
   const filteredScreenings = screenings.filter((s) => {
     if (filterStatus === 'all') return true;
     return s.status === filterStatus;
@@ -279,15 +350,21 @@ export const DoctorResults: React.FC = () => {
                       <User className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-display font-bold text-base text-[var(--color-text)]">
                           {screening.patient?.name || 'Patient'}
                         </h3>
+                        {screening.patient?.patientId && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-[11px] font-bold bg-brand-50 dark:bg-brand-950/50 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800">
+                            <IdCard className="w-3 h-3" />
+                            {screening.patient.patientId}
+                          </span>
+                        )}
                         <span className="text-xs text-[var(--color-text-muted)]">
                           ({screening.patient?.email})
                         </span>
                       </div>
-                      <p className="text-xs text-[var(--color-text-subtle)] font-mono">
+                      <p className="text-xs text-[var(--color-text-subtle)] font-mono mt-0.5">
                         Screening ID: {screening.id} • {new Date(screening.createdAt).toLocaleString()}
                       </p>
                     </div>
@@ -491,6 +568,27 @@ export const DoctorResults: React.FC = () => {
                         <p className="text-xs text-[var(--color-text-muted)] italic">
                           No additional doctor notes recorded.
                         </p>
+                      )}
+
+                      {isApproved && (
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--color-border)]">
+                          <button
+                            onClick={() => handleDownloadStandalone(screening)}
+                            className="btn btn-secondary btn-sm inline-flex items-center gap-1.5 text-xs py-1 px-2.5"
+                            title="Download Standalone Medical Report"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Download Report</span>
+                          </button>
+                          <button
+                            onClick={() => handlePrintStandalone(screening)}
+                            className="btn btn-primary btn-sm inline-flex items-center gap-1.5 text-xs py-1 px-2.5"
+                            title="Print or Save Report as PDF"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                            <span>Print / PDF</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}

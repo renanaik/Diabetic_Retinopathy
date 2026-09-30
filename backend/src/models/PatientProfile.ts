@@ -17,6 +17,7 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface IPatientProfile extends Document {
   userId: Types.ObjectId;
+  patientId: string;     // Unique human-readable identifier (e.g. RC-000001)
   dateOfBirth: string;   // stored as ISO date string (YYYY-MM-DD)
   gender: string;
   phone: string;
@@ -36,6 +37,14 @@ const patientProfileSchema = new Schema<IPatientProfile>(
       ref: 'User',
       required: [true, 'userId is required'],
       unique: true, // one profile per patient
+      index: true,
+    },
+
+    patientId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
       index: true,
     },
 

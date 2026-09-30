@@ -30,6 +30,7 @@ import {
   validatePositiveNumber,
   collectErrors,
 } from '../utils/validation';
+import { generateUniquePatientId, getPatientIdForUser } from '../utils/patientId';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -114,8 +115,12 @@ async function _createPatient(params: {
     return;
   }
 
+  // Generate unique human-readable Patient ID (e.g. RC-000001)
+  const patientId = await generateUniquePatientId();
+
   // Create user
   const user = await User.create({
+    patientId,
     name: (name as string).trim(),
     email,
     passwordHash,
@@ -127,6 +132,7 @@ async function _createPatient(params: {
   // Create patient profile
   await PatientProfile.create({
     userId: user._id,
+    patientId,
     dateOfBirth: (dateOfBirth as string).trim(),
     gender: (gender as string).trim(),
     phone: (phone as string).trim(),
@@ -249,7 +255,13 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
       return;
     }
 
-    // ── 4. Sign token ──────────────────────────────────────────────────────────
+    // ── 4. Ensure patientId exists for patient accounts ────────────────────────
+    if (user.role === 'patient' && !user.patientId) {
+      user.patientId = await getPatientIdForUser(user._id);
+      await user.save();
+    }
+
+    // ── 5. Sign token ──────────────────────────────────────────────────────────
     const token = signToken(user._id.toString(), user.role);
 
     res.status(200).json({
@@ -274,6 +286,12 @@ export async function me(req: Request, res: Response, next: NextFunction): Promi
       return next(new AppError('Authentication required.', 401));
     }
 
+    if (req.user.role === 'patient' && !req.user.patientId) {
+      const patientId = await getPatientIdForUser(req.user.id);
+      req.user.patientId = patientId;
+      await User.findByIdAndUpdate(req.user.id, { patientId });
+    }
+
     res.status(200).json({
       success: true,
       message: 'Authenticated user profile.',
@@ -285,3 +303,65 @@ export async function me(req: Request, res: Response, next: NextFunction): Promi
     next(err);
   }
 }
+
+// ─── PUT /api/auth/change-password ────────────────────────────────────────────
+
+export async function changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ success: false, message: 'Authentication required.' });
+      return;
+    }
+
+    const { currentPassword, newPassword, confirmPassword } = req.body as Record<string, unknown>;
+
+    // 1. Validate inputs
+    if (!currentPassword || typeof currentPassword !== 'string') {
+      res.status(400).json({ success: false, message: 'Current password is required.' });
+      return;
+    }
+
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      res.status(400).json({ success: false, message: passwordError.message });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      res.status(400).json({ success: false, message: 'New password and confirmation do not match.' });
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      res.status(400).json({ success: false, message: 'New password cannot be the same as the current password.' });
+      return;
+    }
+
+    // 2. Fetch user with passwordHash
+    const user = await User.findById(userId).select('+passwordHash');
+    if (!user) {
+      res.status(404).json({ success: false, message: 'User not found.' });
+      return;
+    }
+
+    // 3. Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      res.status(400).json({ success: false, message: 'Current password is incorrect.' });
+      return;
+    }
+
+    // 4. Hash and save new password
+    user.passwordHash = await bcrypt.hash(newPassword as string, BCRYPT_ROUNDS);
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+

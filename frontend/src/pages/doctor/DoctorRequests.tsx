@@ -11,9 +11,11 @@ interface PatientRequest {
   updatedAt: string;
   patient: {
     id: string;
+    patientId?: string;
     name: string;
     email: string;
     profile: {
+      patientId?: string;
       dateOfBirth?: string;
       gender?: string;
       phone?: string;
@@ -170,10 +172,15 @@ export const DoctorRequests: React.FC = () => {
                         <User className="w-6 h-6" />
                       </div>
                       <div>
-                        <h3 className="font-display font-bold text-lg text-[var(--color-text)]">
-                          {p.name}
+                        <h3 className="font-display font-bold text-lg text-[var(--color-text)] flex flex-wrap items-center gap-2">
+                          <span>{p.name}</span>
+                          {(p.patientId || p.profile?.patientId) && (
+                            <span className="font-mono text-xs font-semibold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/60 px-2 py-0.5 rounded border border-brand-200 dark:border-brand-800">
+                              {p.patientId || p.profile?.patientId}
+                            </span>
+                          )}
                         </h3>
-                        <p className="text-xs text-[var(--color-text-muted)] flex items-center gap-2">
+                        <p className="text-xs text-[var(--color-text-muted)] flex items-center gap-2 mt-0.5">
                           <span>{p.email}</span>
                           {p.profile?.phone && (
                             <>

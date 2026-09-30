@@ -16,6 +16,7 @@ export type ConnectionRequestedBy = 'patient' | 'doctor';
 
 export interface AuthUser {
   id: string;
+  patientId?: string;
   name: string;
   email: string;
   role: UserRole;
@@ -23,6 +24,47 @@ export interface AuthUser {
   verificationStatus: DoctorVerificationStatus;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface DoctorProfile {
+  licenseNumber: string;
+  medicalCouncil: string;
+  specialization: string;
+  hospital: string;
+  yearsOfExperience: number;
+  phone?: string;
+  qualification?: string;
+  subSpecialization?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  consultationHours?: string;
+  website?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DoctorProfileResponse {
+  user: AuthUser;
+  profile: DoctorProfile;
+}
+
+export interface PatientProfile {
+  patientId?: string;
+  dateOfBirth: string;
+  gender: string;
+  phone: string;
+  medicalHistory?: string;
+  diabetesHistory?: string;
+  eyeHistory?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PatientProfileResponse {
+  user: AuthUser;
+  profile: PatientProfile;
 }
 
 export interface AuthSession {
@@ -65,6 +107,7 @@ export interface AuthContextValue {
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   signup: (data: SignupData) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
+  updateUser: (user: AuthUser) => void;
 }
 
 export interface DoctorPatientConnection {

@@ -21,9 +21,11 @@ interface ConnectedPatient {
   connectedSince: string;
   patient: {
     id: string;
+    patientId?: string;
     name: string;
     email: string;
     profile: {
+      patientId?: string;
       dateOfBirth?: string;
       gender?: string;
       phone?: string;
@@ -221,7 +223,7 @@ export const DoctorPatientHistory: React.FC = () => {
             patients.map((p) =>
               p.patient ? (
                 <option key={p.patient.id} value={p.patient.id}>
-                  {p.patient.name} ({p.patient.email})
+                  {p.patient.name} [{p.patient.patientId || p.patient.profile?.patientId || 'Patient'}] ({p.patient.email})
                 </option>
               ) : null
             )

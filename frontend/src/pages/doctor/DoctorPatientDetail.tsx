@@ -14,17 +14,26 @@ import {
   Loader2,
   AlertCircle,
   Eye,
+  Download,
+  Printer,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import {
+  printStandaloneReport,
+  downloadStandaloneReport,
+  StandaloneReportData,
+} from '../../utils/reportGenerator';
 
 interface ConnectedPatient {
   connectionId: string;
   connectedSince: string;
   patient: {
     id: string;
+    patientId?: string;
     name: string;
     email: string;
     profile: {
+      patientId?: string;
       dateOfBirth?: string;
       gender?: string;
       phone?: string;
@@ -176,10 +185,15 @@ export const DoctorPatientDetail: React.FC = () => {
                 <User className="w-7 h-7" />
               </div>
               <div>
-                <h1 className="font-display font-bold text-2xl text-[var(--color-text)]">
-                  {p.name}
+                <h1 className="font-display font-bold text-2xl text-[var(--color-text)] flex flex-wrap items-center gap-2.5">
+                  <span>{p.name}</span>
+                  {(p.patientId || p.profile?.patientId) && (
+                    <span className="font-mono text-xs font-semibold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/60 px-2.5 py-1 rounded-md border border-brand-200 dark:border-brand-800">
+                      {p.patientId || p.profile?.patientId}
+                    </span>
+                  )}
                 </h1>
-                <p className="text-xs text-[var(--color-text-muted)]">{p.email}</p>
+                <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{p.email}</p>
               </div>
             </div>
 
@@ -280,7 +294,7 @@ export const DoctorPatientDetail: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <div>
                         <span className={`text-base font-bold ${colors.text}`}>
                           {s.aiResult.predictedLabel}
@@ -296,6 +310,77 @@ export const DoctorPatientDetail: React.FC = () => {
                         </p>
                       )}
                     </div>
+
+                    {isApproved && (
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--color-border)]">
+                        <button
+                          onClick={() => {
+                            const pId = patientData?.patient?.patientId || patientData?.patient?.profile?.patientId || 'RC-000000';
+                            downloadStandaloneReport({
+                              reportId: s.id,
+                              createdAt: s.createdAt,
+                              patient: {
+                                name: patientData?.patient?.name || 'Patient',
+                                patientId: pId,
+                                email: patientData?.patient?.email,
+                                dateOfBirth: patientData?.patient?.profile?.dateOfBirth,
+                                gender: patientData?.patient?.profile?.gender,
+                                phone: patientData?.patient?.profile?.phone,
+                              },
+                              doctor: {
+                                name: 'Attending Ophthalmologist',
+                              },
+                              image: s.image,
+                              aiResult: {
+                                predictedClass: s.aiResult.predictedClass,
+                                predictedLabel: s.aiResult.predictedLabel,
+                                referable: s.aiResult.referable,
+                                disclaimer: s.aiResult.disclaimer,
+                              },
+                              review: s.review,
+                            });
+                          }}
+                          className="btn btn-secondary btn-sm inline-flex items-center gap-1.5 text-xs py-1 px-2.5"
+                          title="Download Standalone Medical Report"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download Report</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            const pId = patientData?.patient?.patientId || patientData?.patient?.profile?.patientId || 'RC-000000';
+                            printStandaloneReport({
+                              reportId: s.id,
+                              createdAt: s.createdAt,
+                              patient: {
+                                name: patientData?.patient?.name || 'Patient',
+                                patientId: pId,
+                                email: patientData?.patient?.email,
+                                dateOfBirth: patientData?.patient?.profile?.dateOfBirth,
+                                gender: patientData?.patient?.profile?.gender,
+                                phone: patientData?.patient?.profile?.phone,
+                              },
+                              doctor: {
+                                name: 'Attending Ophthalmologist',
+                              },
+                              image: s.image,
+                              aiResult: {
+                                predictedClass: s.aiResult.predictedClass,
+                                predictedLabel: s.aiResult.predictedLabel,
+                                referable: s.aiResult.referable,
+                                disclaimer: s.aiResult.disclaimer,
+                              },
+                              review: s.review,
+                            });
+                          }}
+                          className="btn btn-primary btn-sm inline-flex items-center gap-1.5 text-xs py-1 px-2.5"
+                          title="Print or Save Report as PDF"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          <span>Print / PDF</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}

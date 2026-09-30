@@ -27,6 +27,7 @@ export type VerificationStatus =
 
 export interface SafeUser {
   id: string;
+  patientId?: string;
   name: string;
   email: string;
   role: UserRole;
@@ -39,6 +40,7 @@ export interface SafeUser {
 // ─── Document interface ───────────────────────────────────────────────────────
 
 export interface IUser extends Document {
+  patientId?: string;
   name: string;
   email: string;
   passwordHash: string;
@@ -61,6 +63,14 @@ export interface IUserModel extends Model<IUser> {
 
 const userSchema = new Schema<IUser, IUserModel>(
   {
+    patientId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      index: true,
+    },
+
     name: {
       type: String,
       required: [true, 'Name is required'],
@@ -127,6 +137,7 @@ userSchema.index({ role: 1, verificationStatus: 1 });
 userSchema.methods.toSafeObject = function (): SafeUser {
   return {
     id: (this._id as mongoose.Types.ObjectId).toString(),
+    patientId: this.patientId,
     name: this.name,
     email: this.email,
     role: this.role,
