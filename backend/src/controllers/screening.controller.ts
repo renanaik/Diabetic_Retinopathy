@@ -174,6 +174,7 @@ export async function createScreening(
           status: screening.status,
           patient: {
             id: patient._id.toString(),
+            patientId: patient.patientId,
             name: patient.name,
             email: patient.email,
           },
@@ -239,10 +240,12 @@ export async function getDoctorScreenings(
         patient: patient
           ? {
               id: patient._id.toString(),
+              patientId: patient.patientId || profile?.patientId || 'N/A',
               name: patient.name,
               email: patient.email,
               profile: profile
                 ? {
+                    patientId: profile.patientId,
                     dateOfBirth: profile.dateOfBirth,
                     gender: profile.gender,
                     phone: profile.phone,
@@ -319,14 +322,24 @@ export async function getScreeningById(
           doctorId: screening.doctorId.toString(),
           image: screening.image,
           aiResult: screening.aiResult,
+          review: screening.review
+            ? {
+                decision: screening.review.decision,
+                doctorNotes: screening.review.doctorNotes,
+                reviewedAt: screening.review.reviewedAt,
+                reviewedBy: screening.review.reviewedBy ? screening.review.reviewedBy.toString() : screening.doctorId.toString(),
+              }
+            : null,
           status: screening.status,
           patient: patient
             ? {
                 id: patient._id.toString(),
+                patientId: patient.patientId || patientProfile?.patientId || 'N/A',
                 name: patient.name,
                 email: patient.email,
                 profile: patientProfile
                   ? {
+                      patientId: patientProfile.patientId,
                       dateOfBirth: patientProfile.dateOfBirth,
                       gender: patientProfile.gender,
                       phone: patientProfile.phone,

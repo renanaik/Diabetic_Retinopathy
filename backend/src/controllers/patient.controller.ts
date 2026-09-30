@@ -20,7 +20,9 @@ import mongoose from 'mongoose';
 import Screening from '../models/Screening';
 import User from '../models/User';
 import DoctorProfile from '../models/DoctorProfile';
-import { validateObjectId } from '../utils/validation';
+import PatientProfile from '../models/PatientProfile';
+import { validateObjectId, validateName, collectErrors } from '../utils/validation';
+import { generateUniquePatientId, ensurePatientId } from '../utils/patientId';
 import { logger } from '../utils/logger';
 
 // ─── GET /api/patient/screenings (List completed screening history) ────────────
@@ -158,7 +160,34 @@ export async function getPatientScreeningById(
     const doctor = await User.findById(screening.doctorId);
     const doctorProfile = await DoctorProfile.findOne({ userId: screening.doctorId });
 
-    // 6. Return structured patient report (patient-facing fields only, no internal AI metrics)
+    // 6. Fetch patient user and profile info
+    const patient = await User.findById(screening.patientId);
+    let patientProfile = await PatientProfile.findOne({ userId: screening.patientId });
+    if (!patientProfile) {
+      const newId = await generateUniquePatientId();
+      patientProfile = await PatientProfile.create({
+        userId: screening.patientId,
+        patientId: newId,
+        dateOfBirth: '1990-01-01',
+        gender: 'other',
+        phone: 'Not provided',
+      });
+      if (patient) {
+        patient.patientId = newId;
+        await patient.save();
+      }
+    } else if (!patientProfile.patientId) {
+      const pId = await ensurePatientId(patientProfile);
+      if (patient && !patient.patientId) {
+        patient.patientId = pId;
+        await patient.save();
+      }
+    } else if (patient && !patient.patientId) {
+      patient.patientId = patientProfile.patientId;
+      await patient.save();
+    }
+
+    // 7. Return structured patient report (patient-facing fields only, no internal AI metrics)
     res.status(200).json({
       success: true,
       message: 'Screening report retrieved successfully.',
@@ -167,6 +196,17 @@ export async function getPatientScreeningById(
           id: screening._id.toString(),
           patientId: screening.patientId.toString(),
           doctorId: screening.doctorId.toString(),
+          patient: patient
+            ? {
+                id: patient._id.toString(),
+                name: patient.name,
+                email: patient.email,
+                patientId: patient.patientId || patientProfile?.patientId || 'N/A',
+                dateOfBirth: patientProfile?.dateOfBirth || '',
+                gender: patientProfile?.gender || '',
+                phone: patientProfile?.phone || '',
+              }
+            : null,
           doctor: doctor
             ? {
                 id: doctor._id.toString(),
@@ -198,6 +238,166 @@ export async function getPatientScreeningById(
             : null,
           createdAt: screening.createdAt,
           updatedAt: screening.updatedAt,
+        },
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ─── GET /api/patient/profile ──────────────────────────────────────────────────
+
+export async function getPatientProfile(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user!.id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({ success: false, message: 'User account not found.' });
+      return;
+    }
+
+    let profile = await PatientProfile.findOne({ userId });
+    if (!profile) {
+      const patientId = await generateUniquePatientId();
+      profile = await PatientProfile.create({
+        userId,
+        patientId,
+        dateOfBirth: '1990-01-01',
+        gender: 'other',
+        phone: 'Not provided',
+        medicalHistory: '',
+        diabetesHistory: '',
+        eyeHistory: '',
+      });
+      user.patientId = patientId;
+      await user.save();
+    } else if (!profile.patientId) {
+      const patientId = await ensurePatientId(profile);
+      if (!user.patientId) {
+        user.patientId = patientId;
+        await user.save();
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Patient profile retrieved successfully.',
+      data: {
+        user: user.toSafeObject(),
+        profile: {
+          patientId: profile.patientId,
+          dateOfBirth: profile.dateOfBirth,
+          gender: profile.gender,
+          phone: profile.phone,
+          medicalHistory: profile.medicalHistory || '',
+          diabetesHistory: profile.diabetesHistory || '',
+          eyeHistory: profile.eyeHistory || '',
+          createdAt: profile.createdAt,
+          updatedAt: profile.updatedAt,
+        },
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ─── PUT /api/patient/profile ──────────────────────────────────────────────────
+
+export async function updatePatientProfile(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user!.id;
+    const {
+      name,
+      phone,
+      dateOfBirth,
+      gender,
+      medicalHistory,
+      diabetesHistory,
+      eyeHistory,
+    } = req.body as Record<string, unknown>;
+
+    // 1. Validation
+    const validationChecks = [];
+    if (name !== undefined) {
+      validationChecks.push(validateName(name));
+    }
+
+    const validationErrors = collectErrors(validationChecks);
+    if (validationErrors) {
+      res.status(400).json({
+        success: false,
+        message: 'Validation failed.',
+        errors: validationErrors.reduce((acc, curr) => ({ ...acc, [curr.field]: curr.message }), {}),
+      });
+      return;
+    }
+
+    // 2. Fetch User and PatientProfile
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({ success: false, message: 'User account not found.' });
+      return;
+    }
+
+    let profile = await PatientProfile.findOne({ userId });
+    if (!profile) {
+      const patientId = await generateUniquePatientId();
+      profile = new PatientProfile({
+        userId,
+        patientId,
+        dateOfBirth: '1990-01-01',
+        gender: 'other',
+        phone: 'Not provided',
+      });
+      user.patientId = patientId;
+    } else if (!profile.patientId) {
+      const patientId = await ensurePatientId(profile);
+      if (!user.patientId) {
+        user.patientId = patientId;
+      }
+    }
+
+    // 3. Update fields
+    if (name !== undefined) {
+      user.name = String(name).trim();
+    }
+    await user.save();
+
+    if (phone !== undefined) profile.phone = String(phone).trim();
+    if (dateOfBirth !== undefined) profile.dateOfBirth = String(dateOfBirth).trim();
+    if (gender !== undefined) profile.gender = String(gender).trim();
+    if (medicalHistory !== undefined) profile.medicalHistory = String(medicalHistory).trim();
+    if (diabetesHistory !== undefined) profile.diabetesHistory = String(diabetesHistory).trim();
+    if (eyeHistory !== undefined) profile.eyeHistory = String(eyeHistory).trim();
+
+    await profile.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully.',
+      data: {
+        user: user.toSafeObject(),
+        profile: {
+          patientId: profile.patientId,
+          dateOfBirth: profile.dateOfBirth,
+          gender: profile.gender,
+          phone: profile.phone,
+          medicalHistory: profile.medicalHistory || '',
+          diabetesHistory: profile.diabetesHistory || '',
+          eyeHistory: profile.eyeHistory || '',
+          createdAt: profile.createdAt,
+          updatedAt: profile.updatedAt,
         },
       },
     });

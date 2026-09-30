@@ -89,6 +89,8 @@ export type {
   AuthUser,
   DoctorProfile,
   DoctorProfileResponse,
+  PatientProfile,
+  PatientProfileResponse,
   AuthSession,
   PatientSignupData,
   DoctorSignupData,

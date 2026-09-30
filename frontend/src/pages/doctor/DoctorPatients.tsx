@@ -8,9 +8,11 @@ interface ConnectedPatient {
   connectedSince: string;
   patient: {
     id: string;
+    patientId?: string;
     name: string;
     email: string;
     profile: {
+      patientId?: string;
       dateOfBirth?: string;
       gender?: string;
       phone?: string;
@@ -118,8 +120,13 @@ export const DoctorPatients: React.FC = () => {
                         <User className="w-5 h-5" />
                       </div>
                       <div>
-                        <h3 className="font-display font-bold text-base text-[var(--color-text)]">
-                          {p.name}
+                        <h3 className="font-display font-bold text-base text-[var(--color-text)] flex flex-wrap items-center gap-2">
+                          <span>{p.name}</span>
+                          {(p.patientId || p.profile?.patientId) && (
+                            <span className="font-mono text-[11px] font-semibold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/60 px-2 py-0.5 rounded border border-brand-200 dark:border-brand-800">
+                              {p.patientId || p.profile?.patientId}
+                            </span>
+                          )}
                         </h3>
                         <p className="text-xs text-[var(--color-text-muted)]">{p.email}</p>
                       </div>

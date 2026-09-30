@@ -172,10 +172,12 @@ export async function getDoctorPendingRequests(
         patient: patient
           ? {
               id: patient._id.toString(),
+              patientId: patient.patientId || profile?.patientId || 'N/A',
               name: patient.name,
               email: patient.email,
               profile: profile
                 ? {
+                    patientId: profile.patientId,
                     dateOfBirth: profile.dateOfBirth,
                     gender: profile.gender,
                     phone: profile.phone,
@@ -412,10 +414,12 @@ export async function getDoctorPatients(
         patient: patient
           ? {
               id: patient._id.toString(),
+              patientId: patient.patientId || profile?.patientId || 'N/A',
               name: patient.name,
               email: patient.email,
               profile: profile
                 ? {
+                    patientId: profile.patientId,
                     dateOfBirth: profile.dateOfBirth,
                     gender: profile.gender,
                     phone: profile.phone,

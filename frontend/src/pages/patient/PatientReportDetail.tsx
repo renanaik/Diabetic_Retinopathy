@@ -6,19 +6,35 @@ import {
   Stethoscope,
   ArrowLeft,
   Printer,
+  Download,
   Loader2,
   AlertCircle,
   HelpCircle,
   CheckSquare,
   Info,
+  IdCard,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { DR_STAGES, DR_CLASS_MAPPING } from '../../types';
+import {
+  printStandaloneReport,
+  downloadStandaloneReport,
+  StandaloneReportData,
+} from '../../utils/reportGenerator';
 
 interface SingleReportData {
   id: string;
   patientId: string;
   doctorId: string;
+  patient?: {
+    id: string;
+    name: string;
+    email: string;
+    patientId: string;
+    dateOfBirth?: string;
+    gender?: string;
+    phone?: string;
+  } | null;
   doctor: {
     id: string;
     name: string;
@@ -119,10 +135,54 @@ export const PatientReportDetail: React.FC = () => {
   const stageInfo = DR_STAGES.find((s) => s.index === cls);
   const fullDiagnosis = DR_CLASS_MAPPING[cls] || report.aiResult.predictedLabel;
 
+  const patientIdDisplay = report.patient?.patientId || user?.patientId || 'RC-000000';
+
+  const handlePrintReport = () => {
+    if (!report) return;
+    const standaloneData: StandaloneReportData = {
+      reportId: report.id,
+      createdAt: report.createdAt,
+      patient: {
+        name: report.patient?.name || user?.name || 'Patient',
+        patientId: patientIdDisplay,
+        email: report.patient?.email || user?.email,
+        dateOfBirth: report.patient?.dateOfBirth,
+        gender: report.patient?.gender,
+        phone: report.patient?.phone,
+      },
+      doctor: report.doctor,
+      image: report.image,
+      aiResult: report.aiResult,
+      review: report.review,
+    };
+    printStandaloneReport(standaloneData);
+  };
+
+  const handleDownloadReport = () => {
+    if (!report) return;
+    const standaloneData: StandaloneReportData = {
+      reportId: report.id,
+      createdAt: report.createdAt,
+      patient: {
+        name: report.patient?.name || user?.name || 'Patient',
+        patientId: patientIdDisplay,
+        email: report.patient?.email || user?.email,
+        dateOfBirth: report.patient?.dateOfBirth,
+        gender: report.patient?.gender,
+        phone: report.patient?.phone,
+      },
+      doctor: report.doctor,
+      image: report.image,
+      aiResult: report.aiResult,
+      review: report.review,
+    };
+    downloadStandaloneReport(standaloneData);
+  };
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-10">
       {/* Navigation and actions bar */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <Link
           to="/patient/reports"
           className="inline-flex items-center gap-2 text-sm font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
@@ -131,13 +191,24 @@ export const PatientReportDetail: React.FC = () => {
           <span>Back to All Reports</span>
         </Link>
 
-        <button
-          onClick={() => window.print()}
-          className="btn btn-secondary btn-sm inline-flex items-center gap-1.5"
-        >
-          <Printer className="w-4 h-4" />
-          <span>Print / Save Report</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={handleDownloadReport}
+            className="btn btn-secondary btn-sm inline-flex items-center gap-1.5"
+            title="Download standalone medical report file"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download Standalone Report</span>
+          </button>
+          <button
+            onClick={handlePrintReport}
+            className="btn btn-primary btn-sm inline-flex items-center gap-1.5"
+            title="Print or save report as PDF"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print / PDF</span>
+          </button>
+        </div>
       </div>
 
       {/* Official Patient Examination Report */}
@@ -176,21 +247,30 @@ export const PatientReportDetail: React.FC = () => {
 
         {/* 2. PATIENT & DOCTOR DETAILS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-xs">
-          <div>
-            <span className="font-semibold uppercase tracking-wider text-[var(--color-text-muted)] block mb-1 text-[10px]">
+          <div className="space-y-1.5">
+            <span className="font-semibold uppercase tracking-wider text-[var(--color-text-muted)] block text-[10px]">
               Patient Details
             </span>
-            <p className="text-sm font-bold text-[var(--color-text)]">{user?.name || 'Patient'}</p>
-            <p className="text-[var(--color-text-muted)]">{user?.email}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold text-[var(--color-text)]">{report.patient?.name || user?.name || 'Patient'}</p>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-[11px] font-bold bg-brand-50 dark:bg-brand-950/50 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800">
+                <IdCard className="w-3 h-3" />
+                {patientIdDisplay}
+              </span>
+            </div>
+            <p className="text-[var(--color-text-muted)]">{report.patient?.email || user?.email}</p>
+            {report.patient?.dateOfBirth && (
+              <p className="text-[var(--color-text-muted)]">DOB: {report.patient.dateOfBirth}</p>
+            )}
           </div>
 
-          <div>
-            <span className="font-semibold uppercase tracking-wider text-[var(--color-text-muted)] block mb-1 text-[10px]">
+          <div className="space-y-1">
+            <span className="font-semibold uppercase tracking-wider text-[var(--color-text-muted)] block text-[10px]">
               Attending Ophthalmologist
             </span>
             <p className="text-sm font-bold text-[var(--color-text)]">Dr. {report.doctor?.name || 'Ophthalmologist'}</p>
-            <p className="text-[var(--color-text-muted)]">{report.doctor?.specialization}</p>
-            <p className="text-[var(--color-text-muted)]">{report.doctor?.hospital}</p>
+            <p className="text-[var(--color-text-muted)]">{report.doctor?.specialization || 'Ophthalmology'}</p>
+            <p className="text-[var(--color-text-muted)]">{report.doctor?.hospital || 'RetinaCare Partner Clinic'}</p>
           </div>
         </div>
 

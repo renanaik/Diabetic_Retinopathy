@@ -17,6 +17,8 @@ import { Router } from 'express';
 import {
   getPatientScreenings,
   getPatientScreeningById,
+  getPatientProfile,
+  updatePatientProfile,
 } from '../controllers/patient.controller';
 import { authenticate } from '../middleware/authenticate';
 import { authorizeRoles } from '../middleware/authorizeRoles';
@@ -25,6 +27,10 @@ const router = Router();
 
 // ── Global Patient Protection ─────────────────────────────────────────────────
 router.use(authenticate, authorizeRoles('patient'));
+
+// ── Patient Profile Endpoints ─────────────────────────────────────────────────
+router.get('/profile', getPatientProfile);
+router.put('/profile', updatePatientProfile);
 
 // ── Patient Screening Endpoints ───────────────────────────────────────────────
 router.get('/screenings', getPatientScreenings);

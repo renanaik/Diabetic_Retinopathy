@@ -1,17 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Lock,
   Bell,
   Building2,
   Eye,
-  Clock,
-  Globe,
   EyeOff,
   AlertCircle,
-  X
+  X,
+  Sun,
+  Moon,
+  Monitor,
+  Shield,
+  CheckCircle2,
+  Loader2,
+  LogOut,
+  Palette,
+  UserCheck
 } from 'lucide-react';
+import { ThemePreference } from '../../types';
 
 interface NotificationPrefs {
   newRequests: boolean;
@@ -36,6 +45,7 @@ interface PrivacyPrefs {
 
 export const DoctorSettings: React.FC = () => {
   const { user, token, logout } = useAuth();
+  const { themePreference, setThemePreference } = useTheme();
   const navigate = useNavigate();
 
   // Local storage state
@@ -76,6 +86,9 @@ export const DoctorSettings: React.FC = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
   // Load from localStorage & Profile API on mount
   useEffect(() => {
@@ -184,6 +197,83 @@ export const DoctorSettings: React.FC = () => {
     }
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!currentPassword) {
+      setPasswordError('Please enter your current password.');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters long.');
+      return;
+    }
+
+    if (!/[A-Z]/.test(newPassword)) {
+      setPasswordError('New password must contain at least one uppercase letter.');
+      return;
+    }
+
+    if (!/[0-9]/.test(newPassword)) {
+      setPasswordError('New password must contain at least one number.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New password and confirm password do not match.');
+      return;
+    }
+
+    if (newPassword === currentPassword) {
+      setPasswordError('New password cannot be identical to your current password.');
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+          confirmPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setPasswordSuccess('Your password has been changed successfully.');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => {
+          setShowPasswordModal(false);
+          setPasswordSuccess(null);
+        }, 2000);
+      } else {
+        setPasswordError(data.message || 'Failed to change password. Please check your credentials.');
+      }
+    } catch {
+      setPasswordError('Network error connecting to authentication server.');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-12">
       <div>
@@ -191,7 +281,7 @@ export const DoctorSettings: React.FC = () => {
           Doctor Settings
         </h1>
         <p className="text-sm text-[var(--color-text-muted)] mt-1">
-          Configure security, notifications, and clinical workspace preferences.
+          Configure security, visual appearance, notifications, and clinical workspace preferences.
         </p>
       </div>
 
@@ -208,22 +298,113 @@ export const DoctorSettings: React.FC = () => {
           </div>
           <div>
             <span className="text-xs text-[var(--color-text-muted)] block font-medium">Account Status</span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 capitalize inline-flex items-center gap-1 mt-0.5">
-              Active Account
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 capitalize inline-flex items-center gap-1 mt-1">
+              <UserCheck className="w-3.5 h-3.5" />
+              Verified Clinical Account
             </span>
           </div>
         </div>
         <div className="pt-2 flex flex-col sm:flex-row gap-3">
           <button
-            onClick={() => setShowPasswordModal(true)}
-            className="btn btn-outline btn-sm inline-flex items-center gap-1.5"
+            onClick={() => {
+              setPasswordError(null);
+              setPasswordSuccess(null);
+              setShowPasswordModal(true);
+            }}
+            className="btn btn-primary btn-sm inline-flex items-center gap-1.5"
           >
+            <Shield className="w-4 h-4" />
             <span>Change Password</span>
           </button>
         </div>
       </div>
 
-      {/* 2. NOTIFICATION PREFERENCES */}
+      {/* 2. APPEARANCE / THEME */}
+      <div className="card p-6 border border-[var(--color-border)] shadow-sm space-y-4">
+        <h3 className="font-display font-bold text-lg text-[var(--color-text)] flex items-center gap-2 border-b border-[var(--color-border)] pb-3">
+          <Palette className="w-5 h-5 text-purple-500" />
+          Appearance & Theme
+        </h3>
+        <p className="text-xs text-[var(--color-text-muted)]">
+          Customize the visual presentation of your RetinaCare clinical console.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+          {/* Dark Mode */}
+          <button
+            type="button"
+            onClick={() => setThemePreference('dark')}
+            className={`flex flex-col items-center gap-3 p-4 rounded-xl border text-center transition-all ${
+              themePreference === 'dark'
+                ? 'border-brand-500 bg-brand-50/20 dark:bg-brand-950/40 ring-2 ring-brand-500/20 text-brand-600 dark:text-brand-300 font-semibold'
+                : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]'
+            }`}
+          >
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-slate-900 text-slate-100 border border-slate-700">
+              <Moon className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-sm font-medium">Dark Mode</div>
+              <div className="text-[11px] text-[var(--color-text-subtle)] mt-0.5">High contrast clinical view</div>
+            </div>
+            {themePreference === 'dark' && (
+              <span className="text-[10px] font-semibold text-brand-600 dark:text-brand-400 bg-brand-100 dark:bg-brand-950/60 px-2 py-0.5 rounded-full">
+                Active
+              </span>
+            )}
+          </button>
+
+          {/* Light Mode */}
+          <button
+            type="button"
+            onClick={() => setThemePreference('light')}
+            className={`flex flex-col items-center gap-3 p-4 rounded-xl border text-center transition-all ${
+              themePreference === 'light'
+                ? 'border-brand-500 bg-brand-50/20 dark:bg-brand-950/40 ring-2 ring-brand-500/20 text-brand-600 dark:text-brand-300 font-semibold'
+                : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]'
+            }`}
+          >
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-50 text-amber-600 border border-amber-200">
+              <Sun className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-sm font-medium">Light Mode</div>
+              <div className="text-[11px] text-[var(--color-text-subtle)] mt-0.5">Bright clean interface</div>
+            </div>
+            {themePreference === 'light' && (
+              <span className="text-[10px] font-semibold text-brand-600 dark:text-brand-400 bg-brand-100 dark:bg-brand-950/60 px-2 py-0.5 rounded-full">
+                Active
+              </span>
+            )}
+          </button>
+
+          {/* System Default */}
+          <button
+            type="button"
+            onClick={() => setThemePreference('system' as ThemePreference)}
+            className={`flex flex-col items-center gap-3 p-4 rounded-xl border text-center transition-all ${
+              themePreference === 'system'
+                ? 'border-brand-500 bg-brand-50/20 dark:bg-brand-950/40 ring-2 ring-brand-500/20 text-brand-600 dark:text-brand-300 font-semibold'
+                : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]'
+            }`}
+          >
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+              <Monitor className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-sm font-medium">System Sync</div>
+              <div className="text-[11px] text-[var(--color-text-subtle)] mt-0.5">Match operating system</div>
+            </div>
+            {themePreference === 'system' && (
+              <span className="text-[10px] font-semibold text-brand-600 dark:text-brand-400 bg-brand-100 dark:bg-brand-950/60 px-2 py-0.5 rounded-full">
+                Active
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* 3. NOTIFICATION PREFERENCES */}
       <div className="card p-6 border border-[var(--color-border)] shadow-sm space-y-4">
         <h3 className="font-display font-bold text-lg text-[var(--color-text)] flex items-center gap-2 border-b border-[var(--color-border)] pb-3">
           <Bell className="w-5 h-5 text-amber-500" />
@@ -334,7 +515,7 @@ export const DoctorSettings: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. PRACTICE PREFERENCES */}
+      {/* 4. PRACTICE PREFERENCES */}
       <div className="card p-6 border border-[var(--color-border)] shadow-sm space-y-4">
         <h3 className="font-display font-bold text-lg text-[var(--color-text)] flex items-center gap-2 border-b border-[var(--color-border)] pb-3">
           <Building2 className="w-5 h-5 text-cyan-500" />
@@ -400,7 +581,7 @@ export const DoctorSettings: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. SCREENING PREFERENCES */}
+      {/* 5. SCREENING PREFERENCES */}
       <div className="card p-6 border border-[var(--color-border)] shadow-sm space-y-4">
         <h3 className="font-display font-bold text-lg text-[var(--color-text)] flex items-center gap-2 border-b border-[var(--color-border)] pb-3">
           <Eye className="w-5 h-5 text-indigo-500" />
@@ -464,8 +645,6 @@ export const DoctorSettings: React.FC = () => {
         </div>
       </div>
 
-
-
       {/* 6. PRIVACY */}
       <div className="card p-6 border border-[var(--color-border)] shadow-sm space-y-4">
         <h3 className="font-display font-bold text-lg text-[var(--color-text)] flex items-center gap-2 border-b border-[var(--color-border)] pb-3">
@@ -526,12 +705,31 @@ export const DoctorSettings: React.FC = () => {
         </div>
       </div>
 
-
+      {/* 7. ACCOUNT ACTIONS */}
+      <div className="card p-6 border border-rose-200 dark:border-rose-900/30 bg-rose-50/10 space-y-4">
+        <h3 className="font-display font-bold text-lg text-rose-600 dark:text-rose-400 flex items-center gap-2 border-b border-rose-200 dark:border-rose-900/30 pb-3">
+          <LogOut className="w-5 h-5" />
+          Account Session & Actions
+        </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <h4 className="text-sm font-semibold text-[var(--color-text)]">End Current Session</h4>
+            <p className="text-xs text-[var(--color-text-muted)]">Sign out of your RetinaCare Doctor account on this device.</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="btn bg-rose-600 hover:bg-rose-700 text-white btn-sm inline-flex items-center gap-1.5 self-start sm:self-auto"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </div>
 
       {/* PASSWORD CHANGE MODAL */}
       {showPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-lg max-w-md w-full relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-xl max-w-md w-full relative">
             
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
               <h3 className="font-display font-bold text-base text-[var(--color-text)] flex items-center gap-2">
@@ -539,98 +737,122 @@ export const DoctorSettings: React.FC = () => {
                 Change Account Password
               </h3>
               <button
-                onClick={() => setShowPasswordModal(false)}
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPasswordError(null);
+                  setPasswordSuccess(null);
+                }}
                 className="p-1 rounded-md text-[var(--color-text-subtle)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>Password modifications are restricted on this environment. Self-service updates are currently disabled.</span>
-              </div>
+            <form onSubmit={handlePasswordChange}>
+              <div className="p-6 space-y-4">
+                {passwordError && (
+                  <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-lg text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{passwordError}</span>
+                  </div>
+                )}
 
-              <div>
-                <label className="label">Current Password</label>
-                <div className="relative">
-                  <input
-                    disabled
-                    type={showCurrentPassword ? 'text' : 'password'}
-                    className="input pr-10 cursor-not-allowed bg-[var(--color-surface-elevated)]"
-                    value={currentPassword}
-                    onChange={e => setCurrentPassword(e.target.value)}
-                  />
-                  <button
-                    disabled
-                    type="button"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-subtle)]"
-                  >
-                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                {passwordSuccess && (
+                  <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-lg text-xs text-emerald-700 dark:text-emerald-300 flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{passwordSuccess}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="label">Current Password</label>
+                  <div className="relative">
+                    <input
+                      required
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      className="input pr-10"
+                      placeholder="Enter your current password"
+                      value={currentPassword}
+                      onChange={e => setCurrentPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-subtle)] hover:text-[var(--color-text)]"
+                    >
+                      {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">New Password</label>
+                  <div className="relative">
+                    <input
+                      required
+                      type={showNewPassword ? 'text' : 'password'}
+                      className="input pr-10"
+                      placeholder="At least 8 chars, 1 uppercase, 1 number"
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-subtle)] hover:text-[var(--color-text)]"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">Confirm New Password</label>
+                  <div className="relative">
+                    <input
+                      required
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      className="input pr-10"
+                      placeholder="Re-enter your new password"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-subtle)] hover:text-[var(--color-text)]"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="label">New Password</label>
-                <div className="relative">
-                  <input
-                    disabled
-                    type={showNewPassword ? 'text' : 'password'}
-                    className="input pr-10 cursor-not-allowed bg-[var(--color-surface-elevated)]"
-                    value={newPassword}
-                    onChange={e => setNewPassword(e.target.value)}
-                  />
-                  <button
-                    disabled
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-subtle)]"
-                  >
-                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)] rounded-b-xl">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="btn btn-outline btn-sm"
+                  disabled={passwordLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={passwordLoading}
+                  className="btn btn-primary btn-sm inline-flex items-center gap-1.5"
+                >
+                  {passwordLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Updating...</span>
+                    </>
+                  ) : (
+                    <span>Save Password</span>
+                  )}
+                </button>
               </div>
-
-              <div>
-                <label className="label">Confirm New Password</label>
-                <div className="relative">
-                  <input
-                    disabled
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    className="input pr-10 cursor-not-allowed bg-[var(--color-surface-elevated)]"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                  />
-                  <button
-                    disabled
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-subtle)]"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)] rounded-b-xl">
-              <button
-                type="button"
-                onClick={() => setShowPasswordModal(false)}
-                className="btn btn-outline btn-sm"
-              >
-                Close
-              </button>
-              <button
-                disabled
-                className="px-4 py-2 bg-brand-400 dark:bg-brand-600 text-white/50 rounded-lg text-xs font-semibold cursor-not-allowed"
-              >
-                Save Password
-              </button>
-            </div>
+            </form>
 
           </div>
         </div>

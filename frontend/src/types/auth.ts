@@ -16,6 +16,7 @@ export type ConnectionRequestedBy = 'patient' | 'doctor';
 
 export interface AuthUser {
   id: string;
+  patientId?: string;
   name: string;
   email: string;
   role: UserRole;
@@ -47,6 +48,23 @@ export interface DoctorProfile {
 export interface DoctorProfileResponse {
   user: AuthUser;
   profile: DoctorProfile;
+}
+
+export interface PatientProfile {
+  patientId?: string;
+  dateOfBirth: string;
+  gender: string;
+  phone: string;
+  medicalHistory?: string;
+  diabetesHistory?: string;
+  eyeHistory?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PatientProfileResponse {
+  user: AuthUser;
+  profile: PatientProfile;
 }
 
 export interface AuthSession {
