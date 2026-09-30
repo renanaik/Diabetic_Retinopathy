@@ -2,16 +2,17 @@
  * patient.controller.ts — Patient Screening & Report Controller
  *
  * Handles patient access to their own completed clinical screening reports:
- *   - GET /api/patient/screenings     — Patient lists their reviewed screening history
- *   - GET /api/patient/screenings/:id — Patient retrieves a single reviewed screening report
+ *   - GET /api/patient/screenings     — Patient lists their approved screening history
+ *   - GET /api/patient/screenings/:id — Patient retrieves a single approved screening report
  *
  * Security & Clinical Rules:
  *   1. Restricted to authenticated patients ONLY (role: 'patient').
  *   2. Strict ownership: patient can only access screenings where patientId === req.user.id.
- *   3. Clinical release rule: patient can ONLY see screenings with status IN ['approved', 'rejected'].
- *   4. Unreviewed screenings (status: 'pending_review') return 404 to prevent premature disclosure.
- *   5. AI result (aiResult) and Doctor review (review) are clearly distinguished.
- *   6. No sensitive internal data (passwords, JWTs, filesystem paths) is exposed.
+ *   3. Clinical release rule: patient can ONLY see screenings with status === 'approved'.
+ *   4. Rejected and pending_review screenings return 404 to patients.
+ *   5. Internal AI metrics (confidence, classProbabilities, referableProbability) are NOT exposed.
+ *   6. Patient sees only: final diagnosis, doctor review, and patient-facing report information.
+ *   7. No sensitive internal data (passwords, JWTs, filesystem paths) is exposed.
  */
 
 import { Request, Response, NextFunction } from 'express';
@@ -32,10 +33,11 @@ export async function getPatientScreenings(
   try {
     const patientId = req.user!.id;
 
-    // Release rule: only return screenings that have been reviewed by a doctor (approved or rejected)
+    // Release rule: only return screenings that have been approved by a doctor
+    // Rejected and pending_review screenings are NOT visible to patients
     const screenings = await Screening.find({
       patientId: new mongoose.Types.ObjectId(patientId),
-      status: { $in: ['approved', 'rejected'] },
+      status: 'approved',
     }).sort({ createdAt: -1 });
 
     // Fetch doctor user records and doctor profiles for clinical context
@@ -68,13 +70,11 @@ export async function getPatientScreenings(
           size: s.image.size,
         },
         status: s.status,
+        // Patient-facing: only final diagnosis fields, NO internal AI metrics
         aiResult: {
           predictedClass: s.aiResult.predictedClass,
           predictedLabel: s.aiResult.predictedLabel,
-          confidence: s.aiResult.confidence,
-          classProbabilities: s.aiResult.classProbabilities,
           referable: s.aiResult.referable,
-          referableProbability: s.aiResult.referableProbability,
           disclaimer: s.aiResult.disclaimer || 'AI prediction is a screening aid and requires doctor review.',
         },
         review: s.review
@@ -144,11 +144,12 @@ export async function getPatientScreeningById(
       return;
     }
 
-    // 4. Clinical release check: pending_review screenings must NOT be exposed to patients
-    if (screening.status === 'pending_review') {
+    // 4. Clinical release check: only approved screenings are visible to patients
+    // Both pending_review and rejected screenings return 404
+    if (screening.status !== 'approved') {
       res.status(404).json({
         success: false,
-        message: 'Screening report not found or is still awaiting doctor review.',
+        message: 'Screening report not found or is not available.',
       });
       return;
     }
@@ -157,7 +158,7 @@ export async function getPatientScreeningById(
     const doctor = await User.findById(screening.doctorId);
     const doctorProfile = await DoctorProfile.findOne({ userId: screening.doctorId });
 
-    // 6. Return structured patient report
+    // 6. Return structured patient report (patient-facing fields only, no internal AI metrics)
     res.status(200).json({
       success: true,
       message: 'Screening report retrieved successfully.',
@@ -180,13 +181,11 @@ export async function getPatientScreeningById(
             size: screening.image.size,
           },
           status: screening.status,
+          // Patient-facing: only final diagnosis fields, NO internal AI metrics
           aiResult: {
             predictedClass: screening.aiResult.predictedClass,
             predictedLabel: screening.aiResult.predictedLabel,
-            confidence: screening.aiResult.confidence,
-            classProbabilities: screening.aiResult.classProbabilities,
             referable: screening.aiResult.referable,
-            referableProbability: screening.aiResult.referableProbability,
             disclaimer: screening.aiResult.disclaimer || 'AI prediction is a screening aid and requires doctor review.',
           },
           review: screening.review

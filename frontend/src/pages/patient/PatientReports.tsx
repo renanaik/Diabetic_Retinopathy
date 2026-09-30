@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   FileText,
   CheckCircle2,
-  XCircle,
   Stethoscope,
   Building2,
   Calendar,
@@ -13,14 +12,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-
-interface ClassProbabilities {
-  '0': number;
-  '1': number;
-  '2': number;
-  '3': number;
-  '4': number;
-}
 
 interface PatientScreeningReport {
   id: string;
@@ -37,14 +28,11 @@ interface PatientScreeningReport {
     mimeType: string;
     size: number;
   };
-  status: 'approved' | 'rejected';
+  status: 'approved';
   aiResult: {
     predictedClass: 0 | 1 | 2 | 3 | 4;
     predictedLabel: string;
-    confidence: number;
-    classProbabilities: ClassProbabilities;
     referable: boolean;
-    referableProbability: number;
     disclaimer: string;
   };
   review: {
@@ -165,7 +153,6 @@ export const PatientReports: React.FC = () => {
             {reports.map((report) => {
               const cls = report.aiResult.predictedClass;
               const colors = DR_COLORS[cls];
-              const isApproved = report.status === 'approved';
 
               return (
                 <div
@@ -183,14 +170,10 @@ export const PatientReports: React.FC = () => {
                             Report #{report.id.slice(-8).toUpperCase()}
                           </h3>
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border flex items-center gap-1 ${
-                              isApproved
-                                ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                                : 'bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
-                            }`}
+                            className="px-2 py-0.5 rounded-full text-[10px] font-semibold border flex items-center gap-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
                           >
-                            {isApproved ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                            Doctor {isApproved ? 'Approved' : 'Rejected'}
+                            <CheckCircle2 className="w-3 h-3" />
+                            Doctor Approved
                           </span>
                         </div>
                         <p className="text-xs text-[var(--color-text-muted)] flex items-center gap-2 mt-0.5">
@@ -218,12 +201,6 @@ export const PatientReports: React.FC = () => {
                       <p className={`font-display font-bold text-lg ${colors.text} mt-0.5`}>
                         {report.aiResult.predictedLabel}
                       </p>
-                      <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-black/10 dark:border-white/10">
-                        <span className="text-[var(--color-text-muted)]">Confidence</span>
-                        <span className={`font-bold ${colors.text}`}>
-                          {(report.aiResult.confidence * 100).toFixed(1)}%
-                        </span>
-                      </div>
                     </div>
 
                     {/* Reviewing Doctor info */}
@@ -257,9 +234,6 @@ export const PatientReports: React.FC = () => {
                         <p className="text-xs text-[var(--color-text)] mt-1 line-clamp-2">
                           {report.review?.doctorNotes || 'No specific clinical notes entered. Follow regular screening regimen.'}
                         </p>
-                      </div>
-                      <div className="text-[10px] text-[var(--color-text-muted)] pt-2 border-t border-[var(--color-border)] mt-2">
-                        <span>Referable DR: <strong>{report.aiResult.referable ? 'Yes' : 'No'}</strong></span>
                       </div>
                     </div>
                   </div>
