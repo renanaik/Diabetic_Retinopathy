@@ -14,14 +14,6 @@ import {
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-interface ClassProbabilities {
-  '0': number;
-  '1': number;
-  '2': number;
-  '3': number;
-  '4': number;
-}
-
 interface PatientScreeningReport {
   id: string;
   patientId: string;
@@ -37,14 +29,11 @@ interface PatientScreeningReport {
     mimeType: string;
     size: number;
   };
-  status: 'approved' | 'rejected';
+  status: 'approved';
   aiResult: {
     predictedClass: 0 | 1 | 2 | 3 | 4;
     predictedLabel: string;
-    confidence: number;
-    classProbabilities: ClassProbabilities;
     referable: boolean;
-    referableProbability: number;
     disclaimer: string;
   };
   review: {
@@ -218,7 +207,7 @@ export const PatientProgress: React.FC = () => {
                 {latestScreening?.aiResult.predictedLabel}
               </p>
               <p className="text-[11px] text-[var(--color-text-muted)] mt-1">
-                Class {latestScreening?.aiResult.predictedClass} ({(latestScreening!.aiResult.confidence * 100).toFixed(0)}% Conf)
+                {new Date(latestScreening!.createdAt).toLocaleDateString()}
               </p>
             </div>
 
@@ -373,9 +362,6 @@ export const PatientProgress: React.FC = () => {
                         <span className={`px-2 py-0.2 rounded-md font-bold text-[10px] ${STAGE_COLORS[hoveredPoint.aiResult.predictedClass].text}`}>
                           Stage {hoveredPoint.aiResult.predictedClass}
                         </span>
-                        <span className="text-[var(--color-text-muted)]">
-                          • {(hoveredPoint.aiResult.confidence * 100).toFixed(1)}% Confidence
-                        </span>
                       </div>
                       <p className="text-[var(--color-text-muted)]">
                         Screening Date: {new Date(hoveredPoint.createdAt).toLocaleString()} • Attending: Dr. {hoveredPoint.doctor?.name || 'Doctor'}
@@ -426,7 +412,6 @@ export const PatientProgress: React.FC = () => {
                     <th className="py-2.5 px-3">Visit #</th>
                     <th className="py-2.5 px-3">Screening Date</th>
                     <th className="py-2.5 px-3">DR Stage &amp; Diagnosis</th>
-                    <th className="py-2.5 px-3">Confidence</th>
                     <th className="py-2.5 px-3">Reviewing Doctor</th>
                     <th className="py-2.5 px-3 text-right">Action</th>
                   </tr>
@@ -446,9 +431,6 @@ export const PatientProgress: React.FC = () => {
                           <span className={`font-semibold ${STAGE_COLORS[st].text}`}>
                             {s.aiResult.predictedLabel}
                           </span>
-                        </td>
-                        <td className="py-3 px-3 text-[var(--color-text-muted)]">
-                          {(s.aiResult.confidence * 100).toFixed(1)}%
                         </td>
                         <td className="py-3 px-3 text-[var(--color-text)]">
                           Dr. {s.doctor?.name || 'Attending'}
