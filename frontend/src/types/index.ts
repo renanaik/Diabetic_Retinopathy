@@ -69,9 +69,12 @@ export const DR_STAGES: DRStage[] = [
 // ─── Theme Types ──────────────────────────────────────────────────────────────
 
 export type Theme = 'light' | 'dark';
+export type ThemePreference = 'light' | 'dark' | 'system';
 
 export interface ThemeContextValue {
   theme: Theme;
+  themePreference: ThemePreference;
+  setThemePreference: (pref: ThemePreference) => void;
   toggleTheme: () => void;
   isDark: boolean;
 }
@@ -84,6 +87,8 @@ export type {
   ConnectionStatus,
   ConnectionRequestedBy,
   AuthUser,
+  DoctorProfile,
+  DoctorProfileResponse,
   AuthSession,
   PatientSignupData,
   DoctorSignupData,

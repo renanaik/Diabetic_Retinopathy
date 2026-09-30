@@ -25,6 +25,30 @@ export interface AuthUser {
   updatedAt?: string;
 }
 
+export interface DoctorProfile {
+  licenseNumber: string;
+  medicalCouncil: string;
+  specialization: string;
+  hospital: string;
+  yearsOfExperience: number;
+  phone?: string;
+  qualification?: string;
+  subSpecialization?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  consultationHours?: string;
+  website?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DoctorProfileResponse {
+  user: AuthUser;
+  profile: DoctorProfile;
+}
+
 export interface AuthSession {
   token: string;
   user: AuthUser;
@@ -65,6 +89,7 @@ export interface AuthContextValue {
   login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   signup: (data: SignupData) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
+  updateUser: (user: AuthUser) => void;
 }
 
 export interface DoctorPatientConnection {

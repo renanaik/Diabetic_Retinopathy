@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { formatDoctorName } from '../../utils/doctorName';
 
 interface DoctorProfileData {
   licenseNumber?: string;
@@ -102,11 +103,11 @@ export const AdminDoctors: React.FC = () => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        showSuccessToast(data.message || `Dr. ${doctor.name} has been verified successfully.`);
+        showSuccessToast(data.message || `${formatDoctorName(doctor.name)} has been verified successfully.`);
         // Remove approved doctor from the pending queue
         setDoctors((prev) => prev.filter((d) => d.id !== doctor.id));
       } else {
-        showErrorToast(data.message || `Failed to approve Dr. ${doctor.name}.`);
+        showErrorToast(data.message || `Failed to approve ${formatDoctorName(doctor.name)}.`);
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'Network error during approval.';
@@ -120,7 +121,7 @@ export const AdminDoctors: React.FC = () => {
     const authToken = token || localStorage.getItem('retinacare_auth_token');
     if (!authToken) return;
 
-    if (!window.confirm(`Are you sure you want to reject the verification request for Dr. ${doctor.name}?`)) {
+    if (!window.confirm(`Are you sure you want to reject the verification request for ${formatDoctorName(doctor.name)}?`)) {
       return;
     }
 
@@ -137,11 +138,11 @@ export const AdminDoctors: React.FC = () => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        showSuccessToast(data.message || `Dr. ${doctor.name} verification request rejected.`);
+        showSuccessToast(data.message || `${formatDoctorName(doctor.name)} verification request rejected.`);
         // Remove rejected doctor from the pending queue
         setDoctors((prev) => prev.filter((d) => d.id !== doctor.id));
       } else {
-        showErrorToast(data.message || `Failed to reject Dr. ${doctor.name}.`);
+        showErrorToast(data.message || `Failed to reject ${formatDoctorName(doctor.name)}.`);
       }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'Network error during rejection.';
@@ -264,12 +265,12 @@ export const AdminDoctors: React.FC = () => {
                   <div className="flex-1 space-y-4">
                     <div className="flex flex-wrap items-center gap-3">
                       <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white font-bold text-base shadow-xs">
-                        {doctor.name.replace(/^Dr\.\s*/i, '').charAt(0) || 'D'}
+                        {formatDoctorName(doctor.name).replace(/^Dr\.\s*/i, '').charAt(0).toUpperCase() || 'D'}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="font-display font-bold text-lg text-[var(--color-text)]">
-                            {doctor.name}
+                            {formatDoctorName(doctor.name)}
                           </h3>
                           <span className="inline-flex items-center gap-1 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs px-2.5 py-0.5 rounded-full font-medium">
                             <Clock className="w-3 h-3" />
