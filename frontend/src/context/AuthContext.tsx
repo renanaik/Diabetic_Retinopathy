@@ -39,6 +39,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const updateUser = useCallback((updatedUser: AuthUser) => {
+    setUser(updatedUser);
+    try {
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+    } catch {
+      // ignore
+    }
+  }, []);
+
   // Validate token with backend on mount
   useEffect(() => {
     let isMounted = true;
@@ -179,6 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         signup,
         logout,
+        updateUser,
       }}
     >
       {children}
