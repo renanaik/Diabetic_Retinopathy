@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { validateEmail, validatePassword } from '../utils/validation';
 import type { AuthUser } from '../types/auth';
 
 /** Map an authenticated user to their landing page after login. */
@@ -53,9 +54,24 @@ export const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
-    const res = await login(email, password);
+    // ── 1. Client-side Email Validation ──
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+
+    // ── 2. Client-side Password Constraints Validation ──
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
+
+    // ── 3. Authenticate against Backend ──
+    setLoading(true);
+    const res = await login(email.trim(), password);
     setLoading(false);
 
     if (res.success) {
@@ -74,7 +90,7 @@ export const LoginPage: React.FC = () => {
       }
       navigate('/', { replace: true });
     } else {
-      setError(res.message || 'Login failed. Please check your credentials.');
+      setError(res.message || 'Invalid email or password.');
     }
   };
 
@@ -97,9 +113,12 @@ export const LoginPage: React.FC = () => {
 
         {/* ── Error banner ── */}
         {error && (
-          <div className="mb-6 p-3.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 flex items-start gap-2.5 text-xs text-red-700 dark:text-red-300">
+          <div
+            className="mb-6 p-3.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 flex items-start gap-2.5 text-xs text-red-700 dark:text-red-300"
+            id="login-error-banner"
+          >
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span>{error}</span>
+            <span className="leading-relaxed">{error}</span>
           </div>
         )}
 
@@ -116,7 +135,10 @@ export const LoginPage: React.FC = () => {
                 required
                 autoComplete="email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={e => {
+                  setEmail(e.target.value);
+                  if (error) setError('');
+                }}
                 placeholder="you@example.com"
                 className="input pl-10"
                 disabled={loading}
@@ -135,7 +157,10 @@ export const LoginPage: React.FC = () => {
                 required
                 autoComplete="current-password"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={e => {
+                  setPassword(e.target.value);
+                  if (error) setError('');
+                }}
                 placeholder="••••••••"
                 className="input pl-10 pr-10"
                 disabled={loading}

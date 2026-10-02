@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, ArrowRight, AlertCircle, User, Stethoscope } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { validateEmail, validatePassword } from '../utils/validation';
 import type { SignupData, UserRole } from '../types';
 
 export const SignupPage: React.FC = () => {
@@ -33,13 +34,28 @@ export const SignupPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // ── 1. Email Format Validation ──
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+
+    // ── 2. Password Constraints Validation ──
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
+
     setLoading(true);
 
     let signupPayload: SignupData;
     if (role === 'patient') {
       signupPayload = {
         name,
-        email,
+        email: email.trim(),
         password,
         role: 'patient',
         dateOfBirth,
@@ -49,7 +65,7 @@ export const SignupPage: React.FC = () => {
     } else {
       signupPayload = {
         name,
-        email,
+        email: email.trim(),
         password,
         role: 'doctor',
         licenseNumber,
@@ -121,7 +137,7 @@ export const SignupPage: React.FC = () => {
         {error && (
           <div className="mb-6 p-3.5 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 flex items-start gap-2.5 text-xs text-red-700 dark:text-red-300">
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span>{error}</span>
+            <span className="leading-relaxed">{error}</span>
           </div>
         )}
 
@@ -132,7 +148,10 @@ export const SignupPage: React.FC = () => {
               type="text"
               required
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={e => {
+                setName(e.target.value);
+                if (error) setError('');
+              }}
               placeholder={role === 'doctor' ? 'Dr. Sarah Connor' : 'Jane Doe'}
               className="input"
             />
@@ -144,7 +163,10 @@ export const SignupPage: React.FC = () => {
               type="email"
               required
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={e => {
+                setEmail(e.target.value);
+                if (error) setError('');
+              }}
               placeholder="user@example.com"
               className="input"
             />
@@ -156,48 +178,66 @@ export const SignupPage: React.FC = () => {
               type="password"
               required
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={e => {
+                setPassword(e.target.value);
+                if (error) setError('');
+              }}
               placeholder="••••••••"
               className="input"
             />
           </div>
 
+          {/* Conditional Role Fields */}
           {role === 'patient' ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-4 pt-2 border-t border-[var(--color-border)]">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Date of Birth</label>
+                  <input
+                    type="date"
+                    required
+                    value={dateOfBirth}
+                    onChange={e => setDateOfBirth(e.target.value)}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label">Gender</label>
+                  <select
+                    value={gender}
+                    onChange={e => setGender(e.target.value)}
+                    className="input"
+                  >
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
-                <label className="label">Date of Birth</label>
+                <label className="label">Phone Number</label>
                 <input
-                  type="date"
+                  type="tel"
                   required
-                  value={dateOfBirth}
-                  onChange={e => setDateOfBirth(e.target.value)}
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="+1 (555) 000-0000"
                   className="input"
                 />
               </div>
-              <div>
-                <label className="label">Gender</label>
-                <select
-                  value={gender}
-                  onChange={e => setGender(e.target.value)}
-                  className="input"
-                >
-                  <option value="Female">Female</option>
-                  <option value="Male">Male</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
             </div>
           ) : (
-            <>
-              <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-4 pt-2 border-t border-[var(--color-border)]">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Medical License #</label>
+                  <label className="label">License Number</label>
                   <input
                     type="text"
                     required
                     value={licenseNumber}
                     onChange={e => setLicenseNumber(e.target.value)}
-                    placeholder="MED-12345"
+                    placeholder="MD-123456"
                     className="input"
                   />
                 </div>
@@ -208,12 +248,13 @@ export const SignupPage: React.FC = () => {
                     required
                     value={medicalCouncil}
                     onChange={e => setMedicalCouncil(e.target.value)}
-                    placeholder="Medical Board"
+                    placeholder="GMC / Board"
                     className="input"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="label">Hospital / Clinic</label>
                   <input
@@ -226,10 +267,11 @@ export const SignupPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="label">Years of Experience</label>
+                  <label className="label">Experience (Years)</label>
                   <input
                     type="number"
-                    min="0"
+                    min={0}
+                    max={60}
                     required
                     value={yearsOfExperience}
                     onChange={e => setYearsOfExperience(Number(e.target.value))}
@@ -237,17 +279,20 @@ export const SignupPage: React.FC = () => {
                   />
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="btn btn-primary btn-md w-full justify-center mt-2 shadow-card"
-            id="signup-submit-btn"
+            className="btn btn-primary btn-md w-full justify-center mt-4 shadow-card"
           >
-            {loading ? 'Creating Account...' : 'Create Account'}
-            {!loading && <ArrowRight className="w-4 h-4" />}
+            {loading ? 'Creating Account…' : (
+              <>
+                Complete Registration
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
         </form>
 

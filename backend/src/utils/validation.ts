@@ -30,7 +30,7 @@ export function validateEmail(email: unknown): ValidationError | null {
   }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email.trim())) {
-    return { field: 'email', message: 'Email is not valid' };
+    return { field: 'email', message: 'Please enter a valid email address' };
   }
   return null;
 }
@@ -39,6 +39,7 @@ export function validateEmail(email: unknown): ValidationError | null {
  * Password policy:
  *   - 8–72 chars (bcrypt processes max 72 bytes)
  *   - at least 1 uppercase letter
+ *   - at least 1 lowercase letter
  *   - at least 1 digit
  *   - at least 1 special character
  */
@@ -46,21 +47,71 @@ export function validatePassword(password: unknown): ValidationError | null {
   if (!password || typeof password !== 'string') {
     return { field: 'password', message: 'Password is required' };
   }
-  if (password.length < 8) {
-    return { field: 'password', message: 'Password must be at least 8 characters' };
-  }
-  if (password.length > 72) {
+
+  const isTooShort = password.length < 8;
+  const isTooLong = password.length > 72;
+
+  if (isTooLong) {
     return { field: 'password', message: 'Password must be at most 72 characters' };
   }
+
+  const missingCriteria: string[] = [];
   if (!/[A-Z]/.test(password)) {
-    return { field: 'password', message: 'Password must contain at least one uppercase letter' };
+    missingCriteria.push('one uppercase letter');
+  }
+  if (!/[a-z]/.test(password)) {
+    missingCriteria.push('one lowercase letter');
   }
   if (!/[0-9]/.test(password)) {
-    return { field: 'password', message: 'Password must contain at least one number' };
+    missingCriteria.push('one number');
   }
   if (!/[^A-Za-z0-9]/.test(password)) {
-    return { field: 'password', message: 'Password must contain at least one special character' };
+    missingCriteria.push('one special character');
   }
+
+  if (isTooShort) {
+    if (missingCriteria.length === 0) {
+      return { field: 'password', message: 'Password must be at least 8 characters' };
+    }
+    if (missingCriteria.length === 1) {
+      return {
+        field: 'password',
+        message: `Password must be at least 8 characters and contain at least ${missingCriteria[0]}`,
+      };
+    }
+    if (missingCriteria.length === 2) {
+      return {
+        field: 'password',
+        message: `Password must be at least 8 characters and contain at least ${missingCriteria[0]} and ${missingCriteria[1]}`,
+      };
+    }
+    const last = missingCriteria.pop();
+    return {
+      field: 'password',
+      message: `Password must be at least 8 characters and contain at least ${missingCriteria.join(', ')}, and ${last}`,
+    };
+  }
+
+  if (missingCriteria.length > 0) {
+    if (missingCriteria.length === 1) {
+      return {
+        field: 'password',
+        message: `Password must contain at least ${missingCriteria[0]}`,
+      };
+    }
+    if (missingCriteria.length === 2) {
+      return {
+        field: 'password',
+        message: `Password must contain at least ${missingCriteria[0]} and ${missingCriteria[1]}`,
+      };
+    }
+    const last = missingCriteria.pop();
+    return {
+      field: 'password',
+      message: `Password must contain at least ${missingCriteria.join(', ')}, and ${last}`,
+    };
+  }
+
   return null;
 }
 
