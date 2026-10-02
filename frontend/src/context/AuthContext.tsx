@@ -176,6 +176,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUser = useCallback((newUser: AuthUser) => {
+    setUser(newUser);
+    try {
+      localStorage.setItem(USER_KEY, JSON.stringify(newUser));
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const isAuthenticated = Boolean(token && user);
 
   return (

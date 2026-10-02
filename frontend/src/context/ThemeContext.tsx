@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { Theme, ThemePreference, ThemeContextValue } from '../types';
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
@@ -13,68 +13,65 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return stored;
       }
     } catch {
-      // localStorage may not be accessible in some environments
+      // ignore
     }
-    return 'system';
+    return 'system'; // default theme preference
   });
 
-  const [systemDark, setSystemDark] = useState<boolean>(() => {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    return false;
-  });
+  const [theme, setTheme] = useState<Theme>('light');
 
-  // Listen to OS system theme changes
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return;
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e: MediaQueryListEvent) => {
-      setSystemDark(e.matches);
+    // Handler function to update active theme based on preferences
+    const updateTheme = () => {
+      if (themePreference === 'system') {
+        const matchesDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setTheme(matchesDark ? 'dark' : 'light');
+      } else {
+        setTheme(themePreference);
+      }
     };
 
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, []);
+    updateTheme();
 
-  const activeTheme: Theme =
-    themePreference === 'system' ? (systemDark ? 'dark' : 'light') : themePreference;
+    if (themePreference === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      if (mediaQuery.addEventListener) {
+        mediaQuery.addEventListener('change', updateTheme);
+        return () => mediaQuery.removeEventListener('change', updateTheme);
+      } else {
+        mediaQuery.addListener(updateTheme);
+        return () => mediaQuery.removeListener(updateTheme);
+      }
+    }
+  }, [themePreference]);
 
+  // Apply theme class to HTML root node
   useEffect(() => {
     const root = document.documentElement;
-    if (activeTheme === 'dark') {
+    if (theme === 'dark') {
       root.classList.add('dark');
     } else {
       root.classList.remove('dark');
     }
-  }, [activeTheme]);
+  }, [theme]);
 
-  const setThemePreference = useCallback((pref: ThemePreference) => {
+  const setThemePreference = (pref: ThemePreference) => {
     setThemePreferenceState(pref);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, pref);
     } catch {
-      // ignore storage errors
+      // ignore
     }
-  }, []);
+  };
 
-  const toggleTheme = useCallback(() => {
-    setThemePreference(activeTheme === 'light' ? 'dark' : 'light');
-  }, [activeTheme, setThemePreference]);
+  const toggleTheme = () => {
+    setThemePreference(theme === 'light' ? 'dark' : 'light');
+  };
 
-  const isDark = activeTheme === 'dark';
+  const isDark = theme === 'dark';
 
   return (
-    <ThemeContext.Provider
-      value={{
-        theme: activeTheme,
-        themePreference,
-        setThemePreference,
-        toggleTheme,
-        isDark,
-      }}
-    >
+    <ThemeContext.Provider value={{ theme, themePreference, setThemePreference, toggleTheme, isDark }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -7,7 +7,55 @@
  */
 
 import mongoose from 'mongoose';
+import dns from 'dns';
+import net from 'net';
 import { logger } from '../utils/logger';
+
+// Set DNS servers to public resolvers (Google / Cloudflare) to bypass problematic local DNS
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (err) {
+  logger.warn('Failed to set custom DNS servers:', err instanceof Error ? err.message : err);
+}
+
+/**
+ * Custom lookup function to resolve hostnames via dns.resolve4 (which respects dns.setServers)
+ * instead of the default dns.lookup (which uses the OS resolver and ignores setServers).
+ */
+const customLookup = (
+  hostname: string,
+  options: any,
+  callback: (err: Error | null, address?: any, family?: number) => void
+) => {
+  if (typeof options === 'function') {
+    callback = options;
+    options = {};
+  }
+
+  if (net.isIP(hostname)) {
+    const family = net.isIP(hostname);
+    if (options.all) {
+      callback(null, [{ address: hostname, family }]);
+    } else {
+      callback(null, hostname, family);
+    }
+    return;
+  }
+
+  dns.resolve4(hostname, (err, addresses) => {
+    if (err || !addresses || addresses.length === 0) {
+      // Fallback to standard OS lookup
+      dns.lookup(hostname, options, callback);
+    } else {
+      if (options.all) {
+        callback(null, addresses.map(addr => ({ address: addr, family: 4 })));
+      } else {
+        callback(null, addresses[0], 4);
+      }
+    }
+  });
+};
+
 
 // ─── Connection State ─────────────────────────────────────────────────────────
 
@@ -54,6 +102,7 @@ export async function connectDB(): Promise<void> {
       // Mongoose 8+ sets these sensible defaults, but we make them explicit
       serverSelectionTimeoutMS: 10_000, // fail fast after 10 s
       socketTimeoutMS: 45_000,
+      lookup: customLookup as any,
     });
 
     isConnected = true;

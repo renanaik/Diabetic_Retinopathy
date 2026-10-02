@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { formatDoctorName } from '../../utils/doctorName';
 
 interface PatientScreeningReport {
   id: string;
@@ -211,7 +212,7 @@ export const PatientReports: React.FC = () => {
                         </span>
                         <p className="font-semibold text-sm text-[var(--color-text)] flex items-center gap-1 mt-0.5">
                           <Stethoscope className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-                          Dr. {report.doctor?.name || 'Verified Doctor'}
+                          {formatDoctorName(report.doctor?.name || 'Verified Doctor')}
                         </p>
                         {report.doctor?.hospital && (
                           <p className="text-[11px] text-[var(--color-text-muted)] flex items-center gap-1 mt-1">

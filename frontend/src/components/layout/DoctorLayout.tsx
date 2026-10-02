@@ -4,6 +4,7 @@ import { Eye, LayoutDashboard, Users, PlusCircle, BarChart3, History, Cpu, Setti
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { cn } from '../../utils/cn';
+import { formatDoctorName } from '../../utils/doctorName';
 
 const navItems = [
   { to: '/doctor/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -45,7 +46,7 @@ export const DoctorLayout: React.FC = () => {
 
         <div className="px-2 py-1.5 mb-3 bg-cyan-50 dark:bg-cyan-950/40 rounded-lg">
           <p className="text-xs text-[var(--color-text-muted)]">Doctor Console</p>
-          <p className="text-sm font-semibold truncate">Dr. {user?.name || 'Doctor'}</p>
+          <p className="text-sm font-semibold truncate">{formatDoctorName(user?.name || 'Doctor')}</p>
         </div>
 
         <nav className="flex-1 space-y-1">

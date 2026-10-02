@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Stethoscope, Building2, Award, CheckCircle2, Clock, Send, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { formatDoctorName } from '../../utils/doctorName';
 
 interface DoctorProfile {
   licenseNumber?: string;
@@ -69,7 +70,7 @@ export const PatientFindDoctors: React.FC = () => {
       if (res.ok && data.success) {
         setActionMessage({
           type: 'success',
-          text: `Connection request sent successfully to Dr. ${doctorName}.`,
+          text: `Connection request sent successfully to ${formatDoctorName(doctorName)}.`,
         });
         setDoctors((prev) =>
           prev.map((doc) =>
@@ -185,7 +186,7 @@ export const PatientFindDoctors: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-display font-semibold text-lg text-[var(--color-text)]">
-                          Dr. {doc.name}
+                          {formatDoctorName(doc.name)}
                         </h3>
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                           Verified

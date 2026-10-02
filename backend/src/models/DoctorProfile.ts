@@ -18,6 +18,15 @@ export interface IDoctorProfile extends Document {
   specialization: string;
   hospital: string;
   yearsOfExperience: number;
+  phone?: string;
+  qualification?: string;
+  subSpecialization?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  consultationHours?: string;
+  website?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +72,60 @@ const doctorProfileSchema = new Schema<IDoctorProfile>(
       required: [true, 'Years of experience is required'],
       min: [0, 'Years of experience cannot be negative'],
       max: [70, 'Years of experience seems unrealistic'],
+    },
+
+    phone: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+
+    qualification: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+
+    subSpecialization: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+
+    address: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+
+    city: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+
+    state: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+
+    country: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+
+    consultationHours: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+
+    website: {
+      type: String,
+      trim: true,
+      default: '',
     },
   },
   {
